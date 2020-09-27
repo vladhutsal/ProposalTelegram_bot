@@ -1,0 +1,13 @@
+coord >> {'lon': 34.98, 'lat': 48.45} 
+weather >> {'id': 802, 'main': 'Clouds', 'description': 'scattered clouds', 'icon': '03n'} 
+base >> stations 
+main >> {'temp': 290.46, 'feels_like': 289.69, 'temp_min': 289.82, 'temp_max': 291.15, 'pressure': 1016, 'humidity': 82} 
+visibility >> 10000 
+wind >> {'speed': 3, 'deg': 170} 
+clouds >> {'all': 40} 
+dt >> 1601234341 
+sys >> {'type': 1, 'id': 8901, 'country': 'UA', 'sunrise': 1601177636, 'sunset': 1601220478} 
+timezone >> 10800 
+id >> 709930 
+name >> Dnipro 
+cod >> 200 
