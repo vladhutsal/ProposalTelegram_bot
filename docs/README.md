@@ -1,3 +1,5 @@
 ## HTML to PDF converter
 
-Main goal: fill the given templated fields with text using Telegram, and get PDF version of previously designed HTML page.
+Main goals:
+Fill the fields of given HTML template with text, using Telegram bot.
+Get PDF version of previously designed HTML page.
