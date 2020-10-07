@@ -15,7 +15,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
  
 logger = logging.getLogger(__name__)
 
-RUN_THROUGH_HEADERS, FILL_DATA = range(2)
+ASK_HEADER, FILL_DATA, OVERVIEW = range(3)
 
 to_search = {
     'name1': 'Name 1',
@@ -28,26 +28,33 @@ def start(update, context):
     context.user_data['headers'] = to_search
     context.user_data['count'] = 0
 
-    context.bot.send_message(chat_id=update.effective_chat.id, text='I`ll help you to complete the proposal. Type something to begin.')
-
-    return RUN_THROUGH_HEADERS
-
-
-def run_through_headers(update, context):
-    count = context.user_data['count']
-
-    current_header = f'name{count}'
-    context.user_data['headers'][current_header] = update.message.text
-    update.message.reply_text('Type next name')
-    context.user_data['count'] += 1
-    if context.user_data['count'] < 4:
-        return RUN_THROUGH_HEADERS
+    context.bot.send_message(chat_id=update.effective_chat.id, text='I`ll help you to complete the proposal. Type something to start.')
+    context.user_data['status_updater'] = (header for header in context.user_data['headers'].keys())
     
-    return fill_data(context)
+    return ASK_HEADER
+
+
+def ask_header_content(update, context):
+    try:
+        context.user_data['status'] = next(context.user_data['status_updater'])
+        status = context.user_data['status']
+
+        update.message.reply_text(f'Type {status}')
+        logger.info(f'status 39: {status}')
+        fill_data(update, context)
+        return ASK_HEADER
+
+    except StopIteration:
+        return OVERVIEW
+
+
+def fill_data(update, context):
+    status = context.user_data['status']
+    context.user_data['headers'][status] = update.message.text
     
 
-def fill_data(context):
-    print(context.user_data['answers_arr'])
+def overview(context):
+    print(context.user_data['headers'])
 
     return ConversationHandler.END
 
@@ -83,8 +90,9 @@ def main():
 
         states=
         {
-            RUN_THROUGH_HEADERS: [MessageHandler(Filters.text, run_through_headers)],
+            ASK_HEADER: [MessageHandler(Filters.text, ask_header_content)],
             FILL_DATA: [MessageHandler(Filters.text, fill_data)],
+            OVERVIEW: [MessageHandler(Filters.text, overview)],
         },
 
         fallbacks=
