@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from weasyprint import HTML, CSS
 from bs4 import BeautifulSoup
 import telegram
 from telegram import (InlineKeyboardMarkup, InlineKeyboardButton)
@@ -12,6 +13,10 @@ from telegram.ext import (
     ConversationHandler,
     CallbackQueryHandler
 )
+
+# create an overview and editing function
+# create possibility to restart the bot from Telegram
+
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
  
@@ -46,7 +51,7 @@ def start(update, context):
 
 
 def show_header_name(update, context):
-    if context.user_data['first_header'] == True:
+    if context.user_data['first_header']:
         update.callback_query.answer()
         context.user_data['first_header'] = False
 
@@ -73,25 +78,30 @@ def fill_data(update, context):
 
 
 def overview(update, context):
-    st = context.user_data['headers']
-    logger.info(f'overview report: {st}\n')
+    headers = context.user_data['headers']
+    update.message.reply_text(f'Your headers are \n {headers}')
 
-    return ConversationHandler.END
+    return change_text(update, context)
 
 
 def change_text(update, context):
     with open('static/index.html', 'r+') as page:
         parser = BeautifulSoup(page, 'html.parser')
     
-    for header in context.user_data['headers'].keys():
-        pass
+    header_list = context.user_data['headers']
+    for header in header_list.keys():
+        find_header = parser.find('p', tgname=f'{header}')
+        find_header.string.replace_with(header_list[header])
 
-    tag_data = parser.find('p', tgname='name1')
-    tag_data.string.replace_with('bar')
     res_content = parser.prettify()
-
     with open('static/result.html', 'w+') as res_doc:
         res_doc.write(res_content)
+    
+    return ConversationHandler.END
+
+
+def html_to_pdf(context, update):
+    HTML('static/result.html').write_pdf('static/result.pdf', stylesheets=CSS('static/main.css'))
 
 
 def user_help(update, context):
@@ -113,7 +123,8 @@ def main():
             SELECT_ACTION: [CallbackQueryHandler(show_header_name, pattern='^' + str(CREATE_NEW_PROPOSAL) + '$'),
                             CallbackQueryHandler(user_help, pattern='^' + str(HELP) + '$')],
 
-            STORE_HEADER: [MessageHandler(Filters.text, fill_data)]
+            STORE_HEADER: [MessageHandler(Filters.text, fill_data)],
+
         },
         fallbacks=[CommandHandler('end', end)]
     )
