@@ -17,7 +17,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
  
 logger = logging.getLogger(__name__)
 
-ASK_HEADER, FILL_DATA, OVERVIEW, SELECT_ACTION = map(chr, range(4))
+STORE_HEADER, FILL_DATA, OVERVIEW, SELECT_ACTION = map(chr, range(4))
 CREATE_NEW_PROPOSAL, HELP, FIRST_HEADER = map(chr, range(4, 7))
 
 to_search = {
@@ -28,11 +28,10 @@ to_search = {
 }
 
 def start(update, context):
-    # Creating a generator for going through all of the to_search headers and assign it to user_context
     context.user_data['headers'] = to_search
     context.user_data['header_updater'] = (header for header in context.user_data['headers'].keys())
-
     context.user_data['first_header'] = True
+    context.user_data['chat_id'] = update.message.chat_id
 
     buttons = [[
         InlineKeyboardButton(text='Create new proposal', callback_data=str(CREATE_NEW_PROPOSAL)),
@@ -46,28 +45,32 @@ def start(update, context):
     return SELECT_ACTION
 
 
-def ask_header_content(update, context):
-    logger.info(f'ask_header_content report: {update.callback_query}\n')
+def show_header_name(update, context):
+    if context.user_data['first_header'] == True:
+        update.callback_query.answer()
+        context.user_data['first_header'] = False
 
     try:
         context.user_data['status'] = next(context.user_data['header_updater'])
-        status = context.user_data['status']
-
-        update.message.reply_text(f'Type {status}')
-        logger.info(f'status 56: {status}\n')
-        fill_data(update, context)
-        return ASK_HEADER
-
     except StopIteration:
-        return OVERVIEW
+        return overview(update, context)
+
+    c_id = context.user_data['chat_id']
+    status = context.user_data['status']    
+    context.bot.send_message(chat_id=c_id, text=f'Write header named {status}')
+
+    return STORE_HEADER    
 
 
 def fill_data(update, context):
     status = context.user_data['status']
     context.user_data['headers'][status] = update.message.text
+
     st = context.user_data['headers']
-    logger.info(f'fill_data report: {st}\n')
-    
+    logger.info(f'fill_data report dict: {st}\n')
+
+    return show_header_name(update, context)
+
 
 def overview(update, context):
     st = context.user_data['headers']
@@ -103,34 +106,18 @@ def main():
     updater = Updater(token='1259603530:AAHRWl9xHFeoLncdt1jhXLC2ddFLh0YMHBg', use_context=True)
     dispatcher = updater.dispatcher
 
-    # CREATE PROPOSAL HANDLER
-    proposal_creation_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(ask_header_content, pattern='^' + str(CREATE_NEW_PROPOSAL) + '$')],
-
-        states=
-        {
-            ASK_HEADER: [MessageHandler(Filters.text, ask_header_content)],
-            FILL_DATA: [MessageHandler(Filters.text, fill_data)],
-            OVERVIEW: [MessageHandler(Filters.text, overview)]
-        },
-
-        fallbacks=[CommandHandler('end', end)],
-    )
-
-    # START HANDLER
-    top_lvl_handler = ConversationHandler(
+    conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
-
         states=
         {
-            SELECT_ACTION: [proposal_creation_handler,
-                            CallbackQueryHandler(user_help, pattern='^' + str(HELP) + '$')]
-        },
+            SELECT_ACTION: [CallbackQueryHandler(show_header_name, pattern='^' + str(CREATE_NEW_PROPOSAL) + '$'),
+                            CallbackQueryHandler(user_help, pattern='^' + str(HELP) + '$')],
 
+            STORE_HEADER: [MessageHandler(Filters.text, fill_data)]
+        },
         fallbacks=[CommandHandler('end', end)]
     )
-
-    dispatcher.add_handler(top_lvl_handler)  
+    dispatcher.add_handler(conv_handler)  
     updater.start_polling()
 
 
