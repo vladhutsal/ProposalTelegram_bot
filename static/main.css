@@ -1,4 +1,12 @@
-h1 {
+h2 {
   color: black;
   font-weight: 800;
+}
+
+p {
+  color: red;
+}
+
+li {
+  font-weight: 600;
 }

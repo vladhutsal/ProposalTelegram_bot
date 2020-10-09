@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import re
 import telegram
 import logging
 
@@ -16,21 +15,14 @@ from telegram.ext import (
     CallbackQueryHandler
 )
 
-# create an overview
-# create edit function
-# create restart function
-# create errors handling
-# create loger with line number
-
-
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
-STORE_HEADER, FILL_DATA, OVERVIEW, SELECT_ACTION = map(chr, range(4))
-CREATE_NEW_PROPOSAL, HELP, FIRST_HEADER = map(chr, range(4, 7))
+STORE_HEADER, OVERVIEW, SELECT_ACTION = map(chr, range(3))
+CREATE_NEW_PROPOSAL, HELP, CREATE_PDF = map(chr, range(3, 6))
 
-to_search = {
+given_headers = {
     'MCG': 'Main current goal',
     'CE_list': 'Client Expectations',
     'NPS_list': 'Next potential steps',
@@ -42,16 +34,15 @@ to_search = {
 
 
 def start(update, context):
-    context.user_data['headers'] = {
-                                    'MCG': 'Main current goal',
+    context.user_data['headers'] = {'MCG': 'Main current goal',
                                     'CE_list': 'Client Expectations',
                                     'NPS_list': 'Next potential steps',
                                     'TOPS': 'Type of provided services',
                                     'RT': 'Report types',
                                     'EHPW': 'Expected hours per week',
-                                    'VA_list': 'Value-added'
-                                    }
-    context.user_data['header_updater'] = (header for header in to_search.keys())
+                                    'VA_list': 'Value-added'}
+
+    context.user_data['header_updater'] = (header for header in given_headers.keys())
     context.user_data['first_header'] = True
     context.user_data['chat_id'] = update.message.chat_id
 
@@ -82,7 +73,7 @@ def show_header_name(update, context):
 
     c_id = context.user_data['chat_id']
     status = context.user_data['status']
-    header_name = to_search[status]
+    header_name = given_headers[status]
     context.bot.send_message(chat_id=c_id,
                              text=f'Write content for header, named {header_name}')
 
@@ -94,25 +85,29 @@ def fill_data(update, context):
     user_text = update.message.text
     context.user_data['headers'][status] = user_text
 
-    st = context.user_data['headers']
-    logger.info(f'fill_data report dict: {st}\n')
-
     return show_header_name(update, context)
 
 
 def overview(update, context):
     headers = context.user_data['headers']
     update.message.reply_text('Your headers are:')
-    for header in to_search.keys():
+    for header in given_headers.keys():
         header_content = headers[header]
-        text = f'<b>{to_search[header]}</b>\n{header_content}'
+        text = f'<b>{given_headers[header]}</b>\n{header_content}'
         update.message.reply_text(text=text,
                                   parse_mode=telegram.ParseMode.HTML)
+    buttons = [[
+        InlineKeyboardButton(text='Create PDF', callback_data=str(CREATE_PDF))
+    ]]
 
-    return ConversationHandler.END
+    keyboard = InlineKeyboardMarkup(buttons)
+    update.message.reply_text(text='All good?', reply_markup=keyboard)
+
+    return SELECT_ACTION
 
 
-def html_to_pdf(context, update):
+def html_to_pdf(update, context):
+    update.callback_query.answer()
     env = Environment(loader=FileSystemLoader('static/'))
     template = env.get_template('index.html')
     html_out = template.render(headers=context.user_data['headers'])
@@ -121,7 +116,17 @@ def html_to_pdf(context, update):
         html.write(html_out)
 
     HTML('static/result.html').write_pdf('static/result.pdf',
-                                         stylesheets=CSS('static/main.css'))
+                                         stylesheets=[CSS('static/main.css')])
+
+    return send_pdf(context, update)
+
+
+def send_pdf(context, update):
+    c_id = context.user_data['chat_id']
+    with open('static/result.pdf', 'rb') as pdf:
+        context.bot.send_document(chat_id=c_id, document=pdf)
+
+    return ConversationHandler.END
 
 
 def user_help(update, context):
@@ -139,16 +144,17 @@ def main():
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
-        states=
-        {
+        states={
             SELECT_ACTION: [CallbackQueryHandler(show_header_name,
                             pattern='^' + str(CREATE_NEW_PROPOSAL) + '$'),
 
                             CallbackQueryHandler(user_help,
-                            pattern='^' + str(HELP) + '$')],
+                            pattern='^' + str(HELP) + '$'),
 
-            STORE_HEADER: [MessageHandler(Filters.text, fill_data)],
+                            CallbackQueryHandler(html_to_pdf,
+                            pattern='^' + str(CREATE_PDF) + '$')],
 
+            STORE_HEADER: [MessageHandler(Filters.text, fill_data)]
         },
         fallbacks=[CommandHandler('end', end)]
     )

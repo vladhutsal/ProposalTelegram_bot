@@ -1,0 +1,8 @@
+create an overview - done
+create tests
+create restart function
+errors handling
+
+optional:
+create edit function
+create loger with line number

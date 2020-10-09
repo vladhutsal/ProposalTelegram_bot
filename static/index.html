@@ -2,24 +2,47 @@
 <html>
 
 <head>
-    <link href="https://fonts.googleapis.com/css?family=Montserrat&display=swap" rel="stylesheet" />
     <link href="./main.css" rel="stylesheet" />
-    <title>Document</title>
-    <link href="./css/main.css" rel="stylesheet" />
     <title>Document</title>
 </head>
 
+{% set CE_list = headers['CE_list'].split('\n') %}
+{% set NPS_list = headers['NPS_list'].split('\n') %}
+{% set VA_list = headers['VA_list'].split('\n') %}
+
 <body>
- <h2>name 1</h2>
- <p tgname="name1">content</p>
+ <h2>Main current goal</h2>
+ <p tgname="MCG">{{ headers['MCG'] }}</p>
  
- <h2>name 2</h2>
- <p tgname="name2">content</p>
+ <h2>Client Expectations</h2>
+ <ul tgname="CE_list">
+    {% for li_element in CE_list %}
+    <li li='listyle'>{{ li_element }}</li>
+    {% endfor %}
+ </ul>
+
+ <h2>Next potential steps</h2>
+ <ul tgname="NPS_list">
+    {% for li_element in NPS_list %}
+    <li li='listyle'>{{ li_element }}</li>
+    {% endfor %}
+ </ul>
  
- <h2>name 3</h2>
- <p tgname="name3">content</p>
+ <h2>Type of provided services</h2>
+ <p tgname="TOPS">{{ headers['TOPS'] }}</p>
  
- <h2>name 4</h2>
- <p tgname="name4">content</p>
+ <h2>Report types</h2>
+ <p tgname="RT">{{ headers['RT'] }}</p>
+
+ <h2>Expected hours per week</h2>
+ <p tgname="EHPW">{{ headers['EHPW'] }}</p>
+
+ <h2>Value-added</h2>
+ <ul tgname="VA_list">
+    {% for li_element in VA_list %}
+    <li li='listyle'>{{ li_element }}</li>
+    {% endfor %}
+ </ul>
  
 </body>
+</html>
