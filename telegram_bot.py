@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
-from weasyprint import HTML, CSS
-from bs4 import BeautifulSoup
+import re
 import telegram
-from telegram import (InlineKeyboardMarkup, InlineKeyboardButton)
 import logging
+
+from bs4 import BeautifulSoup
+from weasyprint import HTML, CSS
+from telegram import (InlineKeyboardMarkup, InlineKeyboardButton)
 from telegram.ext import (
     Updater,
     CommandHandler,
@@ -26,15 +28,18 @@ STORE_HEADER, FILL_DATA, OVERVIEW, SELECT_ACTION = map(chr, range(4))
 CREATE_NEW_PROPOSAL, HELP, FIRST_HEADER = map(chr, range(4, 7))
 
 to_search = {
-    'name1': 'Name 1',
-    'name2': 'Name 2',
-    'name3': 'Name 3',
-    'name4': 'Name 4'
+    'MCG': 'Main current goal',
+    'CE_list': 'Client Expectations',
+    'NPS_list': 'Next potential steps',
+    'TOPS': 'Type of provided services',
+    'RT': 'Report types',
+    'EHPW': 'Expected hours per week',
+    'VA_list': 'Value-added'
 }
 
 def start(update, context):
     context.user_data['headers'] = to_search
-    context.user_data['header_updater'] = (header for header in context.user_data['headers'].keys())
+    context.user_data['header_updater'] = (header for header in to_search.keys())
     context.user_data['first_header'] = True
     context.user_data['chat_id'] = update.message.chat_id
 
@@ -61,15 +66,22 @@ def show_header_name(update, context):
         return overview(update, context)
 
     c_id = context.user_data['chat_id']
-    status = context.user_data['status']    
-    context.bot.send_message(chat_id=c_id, text=f'Write header named {status}')
+    status = context.user_data['status']
+    header_name = to_search[status]  
+    context.bot.send_message(chat_id=c_id, text=f'Write content for header, named {header_name}')
 
     return STORE_HEADER    
 
 
 def fill_data(update, context):
     status = context.user_data['status']
-    context.user_data['headers'][status] = update.message.text
+
+    if re.search(r'\w+_list$', status):
+        user_text = update.message.text.split('\n')
+    else:
+        user_text = update.message.text
+
+    context.user_data['headers'][status] = user_text
 
     st = context.user_data['headers']
     logger.info(f'fill_data report dict: {st}\n')
@@ -85,17 +97,17 @@ def overview(update, context):
 
 
 def change_text(update, context):
-    with open('static/index.html', 'r+') as page:
-        parser = BeautifulSoup(page, 'html.parser')
+    with open('static/index.html', 'r+') as input_html:
+        parser = BeautifulSoup(input_html, 'html.parser')
     
-    header_list = context.user_data['headers']
-    for header in header_list.keys():
-        find_header = parser.find('p', tgname=f'{header}')
-        find_header.string.replace_with(header_list[header])
+    headers = context.user_data['headers']
+    for header in headers.keys():
+        find_header = parser.find(tgname=f'{header}')
+        find_header.string.replace_with(headers[header])
 
     res_content = parser.prettify()
-    with open('static/result.html', 'w+') as res_doc:
-        res_doc.write(res_content)
+    with open('static/result.html', 'w+') as output_html:
+        output_html.write(res_content)
     
     return ConversationHandler.END
 
