@@ -3,6 +3,7 @@
 import telegram
 import logging
 
+from credentials import token
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML, CSS
 from telegram import (InlineKeyboardMarkup, InlineKeyboardButton)
@@ -23,7 +24,7 @@ CREATE_NEW_PROPOSAL, HELP, CREATE_PDF = map(chr, range(3, 6))
 
 
 def start(update, context):
-# Header code as keys, title and user content as list in value.
+    # Dict looks like this: 'header key': ['header title', 'header content']'
     context.user_data['headers'] = {
                                     'MCG': ['Main current goal', ''],
                                     'CE_list': ['Client Expectations', ''],
@@ -130,8 +131,7 @@ def end():
 
 
 def main():
-    updater = Updater(token='1259603530:AAHRWl9xHFeoLncdt1jhXLC2ddFLh0YMHBg',
-                      use_context=True)
+    updater = Updater(token=token, use_context=True)
     dispatcher = updater.dispatcher
 
     conv_handler = ConversationHandler(

@@ -1,11 +1,13 @@
 env_tbot/
 sandbox/
 __pycache__/
+.pytest_cache
 *.py[cod]
 *$py.class
 *.pdf
 *.html
 !index.html
+credentials.py
 
 # C extensions
 *.so
