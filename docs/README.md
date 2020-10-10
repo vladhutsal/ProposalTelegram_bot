@@ -47,7 +47,7 @@ pip3 install -r docs/requirements.txt
 ### 1. Set token:
 Go to the `main()` function at the `telegram_bot.py` file and put your token inside `token` argument of Updater:
 ```
-updater = Updater(token='your token goes here',
+updater = Updater(token=' --- your token goes here --- ',
                       use_context=True)
 ```
 
