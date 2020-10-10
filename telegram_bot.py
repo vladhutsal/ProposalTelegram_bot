@@ -15,34 +15,25 @@ from telegram.ext import (
     CallbackQueryHandler
 )
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.getLogger('apscheduler.scheduler').propagate = False
 
-logger = logging.getLogger(__name__)
 
 STORE_HEADER, OVERVIEW, SELECT_ACTION = map(chr, range(3))
 CREATE_NEW_PROPOSAL, HELP, CREATE_PDF = map(chr, range(3, 6))
 
-given_headers = {
-    'MCG': 'Main current goal',
-    'CE_list': 'Client Expectations',
-    'NPS_list': 'Next potential steps',
-    'TOPS': 'Type of provided services',
-    'RT': 'Report types',
-    'EHPW': 'Expected hours per week',
-    'VA_list': 'Value-added'
-}
-
 
 def start(update, context):
-    context.user_data['headers'] = {'MCG': 'Main current goal',
-                                    'CE_list': 'Client Expectations',
-                                    'NPS_list': 'Next potential steps',
-                                    'TOPS': 'Type of provided services',
-                                    'RT': 'Report types',
-                                    'EHPW': 'Expected hours per week',
-                                    'VA_list': 'Value-added'}
-
-    context.user_data['header_updater'] = (header for header in given_headers.keys())
+# Header code as keys, title and user content as list in value.
+    context.user_data['headers'] = {
+                                    'MCG': ['Main current goal', ''],
+                                    'CE_list': ['Client Expectations', ''],
+                                    'NPS_list': ['Next potential steps', ''],
+                                    'TOPS': ['Type of provided services', ''],
+                                    'RT_line': ['Report types', ''],
+                                    'EHPW_line': ['Expected hours per week', ''],
+                                    'VA_list': ['Value-added', '']
+                                }
+    context.user_data['header_updater'] = (header for header in context.user_data['headers'].keys())
     context.user_data['first_header'] = True
     context.user_data['chat_id'] = update.message.chat_id
 
@@ -73,9 +64,9 @@ def show_header_name(update, context):
 
     c_id = context.user_data['chat_id']
     status = context.user_data['status']
-    header_name = given_headers[status]
+    header = context.user_data['headers'][status][0]
     context.bot.send_message(chat_id=c_id,
-                             text=f'Write content for header, named {header_name}')
+                             text=f'Write content for header, named {header}')
 
     return STORE_HEADER
 
@@ -83,7 +74,7 @@ def show_header_name(update, context):
 def fill_data(update, context):
     status = context.user_data['status']
     user_text = update.message.text
-    context.user_data['headers'][status] = user_text
+    context.user_data['headers'][status][1] = user_text
 
     return show_header_name(update, context)
 
@@ -91,9 +82,10 @@ def fill_data(update, context):
 def overview(update, context):
     headers = context.user_data['headers']
     update.message.reply_text('Your headers are:')
-    for header in given_headers.keys():
-        header_content = headers[header]
-        text = f'<b>{given_headers[header]}</b>\n{header_content}'
+    for header in headers.keys():
+        header_name = headers[header][0]
+        header_content = headers[header][1]
+        text = f'<b>{header_name}</b>\n{header_content}'
         update.message.reply_text(text=text,
                                   parse_mode=telegram.ParseMode.HTML)
     buttons = [[

@@ -1,24 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <link rel="stylesheet" href="static/main.css">
+   <title>Proposal</title>
+</head>
 <body>
+   
 
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">	<div class="content">   
 		<div class="accented"></div>
 	    <img class="utor-logo" src="https://u-tor.com/images/software%20testing%20company.svg">
 
 		<h1 class="font-weight large">UTOR Proposal</h1>
-	          <p>01.01.2001 <strong>Prepared by Sergey</strong></p>
-	          <h2>Main current <span>Goal</span></h2>
-	          <p>Find QA partner who could provide a QA engineer who will be a part of ready steady store team and will provide QA expertise in web testing.</p>
-	          <h2>Client <span>Expectations</span></h2>
-	          <p>Find QA partner who could provide a QA engineer who will be a part of ready steady store team and will provide QA expertise in web testing.</p>
-	          <h2>Next potential <span>Steps</span></h2>
-	          <ul>
-	            <li><p>Tune-up QA process in development team</p></li>
-	            <li><p>Write test documentation and help with the product documentation</p></li>
-	            <li><p>Priority is cross mobile/browser testing</p></li>
-	            <li><p>Implement Automation testing in future</p></li>
-	            <li><p>Тeed to be discussed in details later</p></li>
-	          </ul>
-	          <hr/>
+             <p>01.01.2001 <strong>Prepared by Sergey</strong></p>
+
+<!-- iterating through headers dict -->
+            {% for header_code, title_content in headers.items() %}
+               {% set title = headers[header_code][0] %}
+               {% set content = headers[header_code][1] %}
+
+               {% if '_list' in header_code %}
+                 {% set list = headers[header_code][1].split('\n') %}
+
+                  <h2>{{ title }}</h2>
+
+                  {% for list_item in list %}
+                    <ul>
+                       <li>
+                          <p>{{ list_item }}</p>
+                       </li>
+                    </ul>
+                  {% endfor %}
+
+                  <hr/>
+
+               {% elif '_line' in header_code %}
+
+                  <h2>{{ title }}</h2>
+                  <p>{{ content }}</p>
+
+<!-- if there is no tags (like _list or _line) we show just title and content -->
+               {% else %}
+
+                  <h2>{{ title }}</h2>
+                  <p>{{ content }}</p>
+
+               {% endif %}
+            {% endfor %}
+            
 	 
 	    <div class="estimation">
 	      <h2>Your new <span>Team Members</span></h2>
@@ -47,178 +77,9 @@
 	                </div>      
 	            </div>
 
-	            <div class="person">
-	              
-	                <img src="https://via.placeholder.com/150x150">
-	                
-	                <div class="credits">
-	                  <strong>Bob Bolan</strong>
-	                  <p>Manager</p>
-	                  <hr>
-	                  <p>email@dot.com</p>
-	                </div>
-
-	                <div class="price">
-	                  <h2>$12</h2>
-	                  <p>rate</p>
-	                </div>      
-	            </div>
-
-	            <div class="person">
-	              
-	                <img src="https://via.placeholder.com/150x150">
-	                
-	                <div class="credits">
-	                  <strong>Bob Bolan</strong>
-	                  <p>Toster</p>
-	                  <hr>
-	                  <p>email@dot.com</p>
-	                </div>
-
-	                <div class="price">
-	                  <h2>$12</h2>
-	                  <p>rate</p>
-	                </div>      
-	            </div>
-
-
 	      </section>    
 	    </div>              
-	</div>
+   </div>
+   
 </body>
-<style type="text/css">
-
-.font-weight.small {
-  font-weight: 300;
-}
-
-.font-weight.medium {
-  font-weight: 400;
-}
-
-.font-weight.large {
-  font-weight: 600;
-}
-
-body {
-  color: white;
-  background-color: #0F0F0F;
-  font-family: 'Montserrat', sans-serif;
-  padding: 3rem 1rem;
-}
-
-h1,
-h2,
-h3 {
-  line-height: 1.3;
-  font-weight: 600;
-}
-
-.content {
-  position: relative;
-  max-width: 45rem;
-  margin: 0 auto 8rem auto;
-}
-
-ul {
-  list-style: none;
-  margin-left: 1.2em;
-  padding-left: 0;
-}
-li p {
-	margin: 0;
-	padding: 0;
-}
-
-li p:before {
-  content: "◦";
-  font-weight: 900;
-  font-size: larger;
-  color: #FFEC01;
-  padding-right: 0.3em;
-  margin-left: -1em;
-}
-
-span {
-  color: #20A6C7;
-}
-
-p {
-  color: #CFCFCF;
-}
-
-hr {
-  color: #272727;
-}
-
-div .accented {
-  background-color: #20A6C7;
-  width: 3em;
-  height: 4em;
-  margin-bottom: -6em;
-  margin-left: -3.2em;
-}
-div .estimation {
-  background-color: #1B1B1B;
-  display: flex;
-  flex-wrap: wrap; 
-  padding-top: 1em;
-  margin-left: -3.2em;
-  padding-left: 3.2em;
-}
-div .time {
-  margin-left: 10em;
-}
-div .time h3{
-  margin: 0;
-}
-.estimation h2 {
-  /*margin: auto; */
-}
-.team {
-  display: flex;
-  flex-wrap: wrap;
-  max-width: 100%;
-}
-
-.person {
-  display: flex;
-  justify-content: space-between;
-  margin: 1em;
-  background-color: #0F0F0F;
-  border-radius: 1em;
-}
-.person img {
-  border-radius: 2em;
-  margin: 1em;
-  width: 4em;
-  height: 4em;
-}
-.person .credits {
-  margin: 1em
-}
-.person .credits p {
-  margin: 0;
-  padding: 0;
-}
-.person .price {
-  margin: 1em;
-}
-.price h2{
-  color: #FFEC01;
-  margin: 0;
-  padding: 0;
-}
-.price p {
-  margin: 0;
-  padding: 0;
-}
-hr {
-  color: #272727;
-}
-
-.utor-logo {
-  padding-left: 35em;
-  margin-bottom: -4em;
-}
-</style>
+</html>

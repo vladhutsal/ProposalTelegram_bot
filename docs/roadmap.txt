@@ -1,5 +1,7 @@
 BOT:
 create an overview - done
+add new engineers
+how to handle default headers data (dict in dict?)
 create tests
 create restart function
 errors handling

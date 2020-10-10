@@ -1,8 +1,11 @@
-env_tbot
-sandbox
+env_tbot/
+sandbox/
 __pycache__/
 *.py[cod]
 *$py.class
+*.pdf
+*.html
+!index.html
 
 # C extensions
 *.so

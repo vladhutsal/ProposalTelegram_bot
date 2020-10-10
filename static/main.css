@@ -1,12 +1,133 @@
-h2 {
-  color: black;
-  font-weight: 800;
+.font-weight.small {
+  font-weight: 300;
+}
+
+.font-weight.medium {
+  font-weight: 400;
+}
+
+.font-weight.large {
+  font-weight: 600;
+}
+
+body {
+  color: white;
+  background-color: #0F0F0F;
+  font-family: 'Montserrat', sans-serif;
+  padding: 3rem 1rem;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.content {
+  position: relative;
+  max-width: 45rem;
+  margin: 0 auto 8rem auto;
+}
+
+ul {
+  list-style: none;
+  margin-left: 1.2em;
+  padding-left: 0;
+}
+li p {
+	margin: 0;
+	padding: 0;
+}
+
+li p:before {
+  content: "◦";
+  font-weight: 900;
+  font-size: larger;
+  color: #FFEC01;
+  padding-right: 0.3em;
+  margin-left: -1em;
+}
+
+span {
+  color: #20A6C7;
 }
 
 p {
-  color: red;
+  color: #CFCFCF;
 }
 
-li {
-  font-weight: 600;
+hr {
+  color: #272727;
+}
+
+div .accented {
+  background-color: #20A6C7;
+  width: 3em;
+  height: 4em;
+  margin-bottom: -6em;
+  margin-left: -3.2em;
+}
+div .estimation {
+  background-color: #1B1B1B;
+  display: flex;
+  flex-wrap: wrap; 
+  padding-top: 1em;
+  margin-left: -3.2em;
+  padding-left: 3.2em;
+}
+div .time {
+  margin-left: 10em;
+}
+div .time h3{
+  margin: 0;
+}
+.estimation h2 {
+  /*margin: auto; */
+}
+.team {
+  display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.person {
+  display: flex;
+  justify-content: space-between;
+  margin: 1em;
+  background-color: #0F0F0F;
+  border-radius: 1em;
+}
+.person img {
+  border-radius: 2em;
+  margin: 1em;
+  width: 4em;
+  height: 4em;
+}
+.person .credits {
+  margin: 1em
+}
+.person .credits p {
+  margin: 0;
+  padding: 0;
+}
+.person .price {
+  margin: 1em;
+}
+.price h2{
+  color: #FFEC01;
+  margin: 0;
+  padding: 0;
+}
+.price p {
+  margin: 0;
+  padding: 0;
+}
+hr {
+  color: #272727;
+}
+
+.utor-logo {
+  padding-left: 35em;
+  margin-bottom: -4em;
 }
