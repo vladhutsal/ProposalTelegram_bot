@@ -42,14 +42,13 @@ deactivate
 pip3 install -r docs/requirements.txt
 ```
 
-
 ## Start bot:
 ### 1. Set token:
-Go to the `main()` function at the `telegram_bot.py` file and put your token inside `token` argument of Updater:
+Create `credentials.py` file in the root directory and add the variable named `token`. Put your token, you've got from **BotFather** like this:
 ```
-updater = Updater(token=' --- your token goes here --- ',
-                      use_context=True)
+token = 'place to put your token'
 ```
+
 
 ### 2. Run Bot:
 ```
