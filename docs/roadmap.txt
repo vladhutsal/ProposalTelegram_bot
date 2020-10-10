@@ -1,7 +1,10 @@
+BOT:
 create an overview - done
 create tests
 create restart function
 errors handling
+
+create blue word
 
 optional:
 create edit function
