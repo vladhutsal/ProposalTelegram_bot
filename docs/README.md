@@ -51,6 +51,7 @@ token = 'place to put your token'
 
 
 ### 2. Run Bot:
+Go inside HTMLtoPDF_TelegramBot folder and run:
 ```
 python3 telegram_bot.py
 ```
