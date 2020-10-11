@@ -4,6 +4,7 @@ import telegram
 import logging
 
 from credentials import token
+from tests.test_pdf import create_lorem_dict
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML, CSS
 from telegram import (InlineKeyboardMarkup, InlineKeyboardButton)
@@ -20,7 +21,7 @@ logging.getLogger('apscheduler.scheduler').propagate = False
 
 
 STORE_HEADER, OVERVIEW, SELECT_ACTION = map(chr, range(3))
-CREATE_NEW_PROPOSAL, HELP, CREATE_PDF = map(chr, range(3, 6))
+CREATE_NEW_PROPOSAL, TEST, CREATE_PDF = map(chr, range(3, 6))
 
 
 def start(update, context):
@@ -41,8 +42,8 @@ def start(update, context):
     buttons = [[
         InlineKeyboardButton(text='Create new proposal',
                              callback_data=str(CREATE_NEW_PROPOSAL)),
-        InlineKeyboardButton(text='Help',
-                             callback_data=str(HELP))
+        InlineKeyboardButton(text='Test',
+                             callback_data=str(TEST))
     ]]
 
     keyboard = InlineKeyboardMarkup(buttons)
@@ -53,11 +54,12 @@ def start(update, context):
     return SELECT_ACTION
 
 
-def show_header_name(update, context):
-    if context.user_data['first_header']:
-        update.callback_query.answer()
-        context.user_data['first_header'] = False
+def create_proposal_answer(update, context):
+    update.callback_query.answer()
+    
 
+# bad decision to handle one function using objects of defferent class
+def show_header_name(update, context):
     try:
         context.user_data['status'] = next(context.user_data['header_updater'])
     except StopIteration:
@@ -99,8 +101,8 @@ def overview(update, context):
     return SELECT_ACTION
 
 
+# generate tmp file instead of hardocded one
 def html_to_pdf(update, context):
-    update.callback_query.answer()
     env = Environment(loader=FileSystemLoader('static/'))
     template = env.get_template('index.html')
     html_out = template.render(headers=context.user_data['headers'])
@@ -110,6 +112,7 @@ def html_to_pdf(update, context):
 
     HTML('static/result.html').write_pdf('static/result.pdf',
                                          stylesheets=[CSS('static/main.css')])
+    update.callback_query.answer()
 
     return send_pdf(context, update)
 
@@ -122,8 +125,12 @@ def send_pdf(context, update):
     return ConversationHandler.END
 
 
-def user_help(update, context):
-    pass
+def get_test_pdf_dict(update, context):
+    user_dict = context.user_data['headers']
+    context.user_data['headers'] = create_lorem_dict(user_dict)
+    update.callback_query.answer()
+
+    return html_to_pdf(update, context)
 
 
 def end():
@@ -133,23 +140,25 @@ def end():
 def main():
     updater = Updater(token=token, use_context=True)
     dispatcher = updater.dispatcher
-
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
             SELECT_ACTION: [CallbackQueryHandler(show_header_name,
                             pattern='^' + str(CREATE_NEW_PROPOSAL) + '$'),
 
-                            CallbackQueryHandler(user_help,
-                            pattern='^' + str(HELP) + '$'),
+                            CallbackQueryHandler(get_test_pdf_dict,
+                            pattern='^' + str(TEST) + '$'),
 
                             CallbackQueryHandler(html_to_pdf,
                             pattern='^' + str(CREATE_PDF) + '$')],
 
             STORE_HEADER: [MessageHandler(Filters.text, fill_data)]
         },
-        fallbacks=[CommandHandler('end', end)]
-    )
+        fallbacks=[CommandHandler('end', end)],
+
+        allow_reentry=True
+     )
+
     dispatcher.add_handler(conv_handler)
     updater.start_polling()
 
