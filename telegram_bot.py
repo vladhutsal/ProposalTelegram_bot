@@ -2,9 +2,11 @@
 
 import telegram
 import logging
+import tempfile
 
 from credentials import token
 from tests.test_pdf import create_lorem_dict
+
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML, CSS
 from telegram import (InlineKeyboardMarkup, InlineKeyboardButton)
@@ -21,7 +23,7 @@ logging.getLogger('apscheduler.scheduler').propagate = False
 
 
 STORE_HEADER, OVERVIEW, SELECT_ACTION = map(chr, range(3))
-CREATE_NEW_PROPOSAL, TEST, CREATE_PDF = map(chr, range(3, 6))
+CREATE_NEW_PROPOSAL, TEST, CREATE_PDF, EDIT = map(chr, range(3, 7))
 
 
 def start(update, context):
@@ -52,14 +54,14 @@ def start(update, context):
                               reply_markup=keyboard)
 
     return SELECT_ACTION
-
-
-def create_proposal_answer(update, context):
-    update.callback_query.answer()
     
 
-# bad decision to handle one function using objects of defferent class
+# bad decision to handle one function using objects of different class
 def show_header_name(update, context):
+    if context.user_data['first_header']:
+        update.callback_query.answer()
+        context.user_data['first_header'] = False
+
     try:
         context.user_data['status'] = next(context.user_data['header_updater'])
     except StopIteration:
@@ -92,7 +94,8 @@ def overview(update, context):
         update.message.reply_text(text=text,
                                   parse_mode=telegram.ParseMode.HTML)
     buttons = [[
-        InlineKeyboardButton(text='Create PDF', callback_data=str(CREATE_PDF))
+        InlineKeyboardButton(text='Create PDF', callback_data=str(CREATE_PDF)),
+        InlineKeyboardButton(text='Edit', callback_data=str(EDIT))
     ]]
 
     keyboard = InlineKeyboardMarkup(buttons)
@@ -101,17 +104,36 @@ def overview(update, context):
     return SELECT_ACTION
 
 
+def edit(update, context):
+    hdrs = context.user_data['headers']
+    hdr_codes = context.user_data['headers'].keys()
+
+    buttons = []
+    for hdr_code in hdr_codes:
+        button = [InlineKeyboardButton(text=f'{hdrs[hdr_code][0]}', callback_data=f'{hdr_code}')]
+        buttons.append(button)
+
+    keyboard = InlineKeyboardMarkup(buttons)
+    update.callback_query.edit_message_text(text='Choose:', reply_markup=keyboard)
+
+    return ConversationHandler.END
+    
+
 # generate tmp file instead of hardocded one
 def html_to_pdf(update, context):
     env = Environment(loader=FileSystemLoader('static/'))
     template = env.get_template('index.html')
-    html_out = template.render(headers=context.user_data['headers'])
+    jinja_rendered_html = template.render(headers=context.user_data['headers'])
 
-    with open('static/result.html', 'w+') as html:
-        html.write(html_out)
+    tmp_html_file = tempfile.NamedTemporaryFile(suffix='.html', delete=False)
+    tmp_pdf_file = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
 
-    HTML('static/result.html').write_pdf('static/result.pdf',
-                                         stylesheets=[CSS('static/main.css')])
+    with open(tmp_html_file.name, 'w+') as html:
+        html.write(jinja_rendered_html)
+
+    HTML(tmp_html_file.name).write_pdf(tmp_pdf_file.name,
+                                       stylesheets=[CSS('static/main.css')])
+    context.user_data['tmpfile'] = tmp_pdf_file
     update.callback_query.answer()
 
     return send_pdf(context, update)
@@ -119,7 +141,8 @@ def html_to_pdf(update, context):
 
 def send_pdf(context, update):
     c_id = context.user_data['chat_id']
-    with open('static/result.pdf', 'rb') as pdf:
+    pdf = context.user_data['tmpfile']
+    with open(pdf.name, 'rb') as pdf:
         context.bot.send_document(chat_id=c_id, document=pdf)
 
     return ConversationHandler.END
@@ -137,6 +160,10 @@ def end():
     pass
 
 
+def check_if_text(update, context):
+    update
+
+
 def main():
     updater = Updater(token=token, use_context=True)
     dispatcher = updater.dispatcher
@@ -150,7 +177,10 @@ def main():
                             pattern='^' + str(TEST) + '$'),
 
                             CallbackQueryHandler(html_to_pdf,
-                            pattern='^' + str(CREATE_PDF) + '$')],
+                            pattern='^' + str(CREATE_PDF) + '$'),
+                     
+                            CallbackQueryHandler(edit,
+                            pattern="^" + str(EDIT) + '$')],
 
             STORE_HEADER: [MessageHandler(Filters.text, fill_data)]
         },
