@@ -25,7 +25,7 @@ class Proposal:
         except StopIteration as end:
             raise end
 
-    def get_hdr_name(self):
+    def get_hdr_name(self, ):
         return self.hdr_dict[self.current_hdr][0]
 
     def store_text(self, text):

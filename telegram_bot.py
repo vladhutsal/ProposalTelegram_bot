@@ -50,7 +50,10 @@ def start(update, context):
 def query_answer(update, context):
     update.callback_query.answer()
 
-    return fill_all_hdrs(update, context)
+    if proposal.edit_all:
+        return fill_all_hdrs(update, context)
+    elif not proposal.edit_all:
+        return show_header_name(update, context)
 
 
 def fill_all_hdrs(update, context):
@@ -64,10 +67,10 @@ def fill_all_hdrs(update, context):
 
 def edit_header(update, context):
     query = update.callback_query
-    context.user_data['curr_header'] = query.data.split(',')[0]
-    context.user_data['status'] = 'one'
+    proposal.current_hdr = query.data.split(',')[0]
+    proposal.edit_all = False
 
-    return show_header_name(update, context)
+    return query_answer(update, context)
 
 
 # bad decision to handle one function using objects of different class
