@@ -6,6 +6,7 @@ import tempfile
 
 from credentials import token
 from tests.test_pdf import create_lorem_dict
+from Proposal import Proposal
 
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML, CSS
@@ -21,24 +22,13 @@ from telegram.ext import (
 
 logging.getLogger('apscheduler.scheduler').propagate = False
 
+proposal = Proposal()
 
-STORE_HEADER, OVERVIEW, SELECT_ACTION = map(chr, range(3))
-CREATE_NEW_PROPOSAL, TEST, CREATE_PDF, EDIT = map(chr, range(3, 7))
+STORE_DATA, OVERVIEW, SELECT_ACTION = map(chr, range(3))
+CREATE_NEW_PROPOSAL, TEST, CREATE_PDF, EDIT_CHOOSE, EDIT_HEADER = map(chr, range(3, 8))
 
 
 def start(update, context):
-    # Dict looks like this: 'header key': ['header title', 'header content']'
-    context.user_data['headers'] = {
-                                    'MCG': ['Main current goal', ''],
-                                    'CE_list': ['Client Expectations', ''],
-                                    'NPS_list': ['Next potential steps', ''],
-                                    'TOPS': ['Type of provided services', ''],
-                                    'RT_line': ['Report types', ''],
-                                    'EHPW_line': ['Expected hours per week', ''],
-                                    'VA_list': ['Value-added', '']
-                                }
-    context.user_data['header_updater'] = (header for header in context.user_data['headers'].keys())
-    context.user_data['first_header'] = True
     context.user_data['chat_id'] = update.message.chat_id
 
     buttons = [[
@@ -54,49 +44,74 @@ def start(update, context):
                               reply_markup=keyboard)
 
     return SELECT_ACTION
-    
 
-# bad decision to handle one function using objects of different class
-def show_header_name(update, context):
-    if context.user_data['first_header']:
-        update.callback_query.answer()
-        context.user_data['first_header'] = False
 
+# crutch
+def query_answer(update, context):
+    update.callback_query.answer()
+
+    return fill_all_hdrs(update, context)
+
+
+def fill_all_hdrs(update, context):
     try:
-        context.user_data['status'] = next(context.user_data['header_updater'])
+        proposal.current_hdr = proposal.get_next_header()
     except StopIteration:
         return overview(update, context)
-
-    c_id = context.user_data['chat_id']
-    status = context.user_data['status']
-    header = context.user_data['headers'][status][0]
-    context.bot.send_message(chat_id=c_id,
-                             text=f'Write content for header, named {header}')
-
-    return STORE_HEADER
-
-
-def fill_data(update, context):
-    status = context.user_data['status']
-    user_text = update.message.text
-    context.user_data['headers'][status][1] = user_text
 
     return show_header_name(update, context)
 
 
+def edit_header(update, context):
+    query = update.callback_query
+    context.user_data['curr_header'] = query.data.split(',')[0]
+    context.user_data['status'] = 'one'
+
+    return show_header_name(update, context)
+
+
+# bad decision to handle one function using objects of different class
+def show_header_name(update, context):
+    header = proposal.get_hdr_name()
+    context.bot.send_message(chat_id=context.user_data['chat_id'],
+                             text=f'Write content for header, named {header}')
+    return STORE_DATA
+
+
+def store_data(update, context):
+    user_text = update.message.text
+    proposal.store_text(user_text)
+
+    if proposal.edit_all:
+        return fill_all_hdrs(update, context)
+    elif not proposal.edit_all:
+        return overview(update, context)
+
+
+def edit_choose(update, context):
+    hdr_dict = proposal.hdr_dict
+    buttons = []
+    for hdr_id in proposal.headers_id:
+        button = [InlineKeyboardButton(text=f'{hdr_dict[hdr_id][0]}',
+                                       callback_data=f'{hdr_id}, {str(EDIT_HEADER)}')]
+        buttons.append(button)
+
+    keyboard = InlineKeyboardMarkup(buttons)
+    update.callback_query.edit_message_text(text='Choose:', reply_markup=keyboard)
+
+    return SELECT_ACTION
+
+
 def overview(update, context):
-    headers = context.user_data['headers']
     update.message.reply_text('Your headers are:')
-    for header in headers.keys():
-        header_name = headers[header][0]
-        header_content = headers[header][1]
-        text = f'<b>{header_name}</b>\n{header_content}'
+    for hdr_id in proposal.headers_id:
+        text = proposal.hdr_overview(hdr_id)
         update.message.reply_text(text=text,
                                   parse_mode=telegram.ParseMode.HTML)
+
     buttons = [[
         InlineKeyboardButton(text='Create PDF', callback_data=str(CREATE_PDF)),
-        InlineKeyboardButton(text='Edit', callback_data=str(EDIT))
-    ]]
+        InlineKeyboardButton(text='Edit', callback_data=str(EDIT_CHOOSE))]]
 
     keyboard = InlineKeyboardMarkup(buttons)
     update.message.reply_text(text='All good?', reply_markup=keyboard)
@@ -104,26 +119,11 @@ def overview(update, context):
     return SELECT_ACTION
 
 
-def edit(update, context):
-    hdrs = context.user_data['headers']
-    hdr_codes = context.user_data['headers'].keys()
-
-    buttons = []
-    for hdr_code in hdr_codes:
-        button = [InlineKeyboardButton(text=f'{hdrs[hdr_code][0]}', callback_data=f'{hdr_code}')]
-        buttons.append(button)
-
-    keyboard = InlineKeyboardMarkup(buttons)
-    update.callback_query.edit_message_text(text='Choose:', reply_markup=keyboard)
-
-    return ConversationHandler.END
-    
-
 # generate tmp file instead of hardocded one
 def html_to_pdf(update, context):
     env = Environment(loader=FileSystemLoader('static/'))
     template = env.get_template('index.html')
-    jinja_rendered_html = template.render(headers=context.user_data['headers'])
+    jinja_rendered_html = template.render(headers=proposal.hdr_dict)
 
     tmp_html_file = tempfile.NamedTemporaryFile(suffix='.html', delete=False)
     tmp_pdf_file = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
@@ -142,6 +142,7 @@ def html_to_pdf(update, context):
 def send_pdf(context, update):
     c_id = context.user_data['chat_id']
     pdf = context.user_data['tmpfile']
+
     with open(pdf.name, 'rb') as pdf:
         context.bot.send_document(chat_id=c_id, document=pdf)
 
@@ -149,8 +150,7 @@ def send_pdf(context, update):
 
 
 def get_test_pdf_dict(update, context):
-    user_dict = context.user_data['headers']
-    context.user_data['headers'] = create_lorem_dict(user_dict)
+    proposal.hdr_dict = create_lorem_dict(proposal.hdr_dict)
     update.callback_query.answer()
 
     return html_to_pdf(update, context)
@@ -170,7 +170,7 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            SELECT_ACTION: [CallbackQueryHandler(show_header_name,
+            SELECT_ACTION: [CallbackQueryHandler(query_answer,
                             pattern='^' + str(CREATE_NEW_PROPOSAL) + '$'),
 
                             CallbackQueryHandler(get_test_pdf_dict,
@@ -179,10 +179,13 @@ def main():
                             CallbackQueryHandler(html_to_pdf,
                             pattern='^' + str(CREATE_PDF) + '$'),
                      
-                            CallbackQueryHandler(edit,
-                            pattern="^" + str(EDIT) + '$')],
+                            CallbackQueryHandler(edit_choose,
+                            pattern="^" + str(EDIT_CHOOSE) + '$'),
 
-            STORE_HEADER: [MessageHandler(Filters.text, fill_data)]
+                            CallbackQueryHandler(edit_header,
+                            pattern=f'.+{EDIT_HEADER}$')],
+
+            STORE_DATA: [MessageHandler(Filters.text, store_data)]
         },
         fallbacks=[CommandHandler('end', end)],
 
