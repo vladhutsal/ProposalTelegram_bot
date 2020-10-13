@@ -10,25 +10,31 @@ from Proposal import Proposal
 
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML, CSS
-from telegram import (InlineKeyboardMarkup, InlineKeyboardButton)
+from telegram import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    ReplyKeyboardMarkup,
+    KeyboardButton)
+
 from telegram.ext import (
     Updater,
     CommandHandler,
     MessageHandler,
     Filters,
     ConversationHandler,
-    CallbackQueryHandler
-)
+    CallbackQueryHandler)
 
 logging.getLogger('apscheduler.scheduler').propagate = False
 
 proposal = Proposal()
 
-STORE_DATA, OVERVIEW, SELECT_ACTION = map(chr, range(3))
-CREATE_NEW_PROPOSAL, TEST, CREATE_PDF, EDIT_CHOOSE, EDIT_HEADER = map(chr, range(3, 8))
+STORE_DATA, SELECT_ACTION = map(chr, range(2))
+CREATE_NEW_PROPOSAL, TEST, CREATE_PDF, OVERVIEW = map(chr, range(3, 7))
+WHAT_TO_EDIT, EDIT_HEADER = map(chr, range(8, 10))
 
 
 def start(update, context):
+    proposal.reset_iter()
     context.user_data['chat_id'] = update.message.chat_id
 
     buttons = [[
@@ -73,7 +79,6 @@ def edit_header(update, context):
     return query_answer(update, context)
 
 
-# bad decision to handle one function using objects of different class
 def show_header_name(update, context):
     header = proposal.get_hdr_name()
     context.bot.send_message(chat_id=context.user_data['chat_id'],
@@ -91,39 +96,47 @@ def store_data(update, context):
         return overview(update, context)
 
 
-def edit_choose(update, context):
+def what_to_edit(update, context):
+    query = update.callback_query
     hdr_dict = proposal.hdr_dict
     buttons = []
     for hdr_id in proposal.headers_id:
-        button = [InlineKeyboardButton(text=f'{hdr_dict[hdr_id][0]}',
-                                       callback_data=f'{hdr_id}, {str(EDIT_HEADER)}')]
-        buttons.append(button)
+        btn = [InlineKeyboardButton(text=f'{hdr_dict[hdr_id][0]}',
+                                    callback_data=f'{hdr_id}, {str(EDIT_HEADER)}')]
+        buttons.append(btn)
 
+    back_btn = [InlineKeyboardButton(text='<< GO BACK',
+                                     callback_data=str(OVERVIEW))]
+    buttons.append(back_btn)
     keyboard = InlineKeyboardMarkup(buttons)
-    update.callback_query.edit_message_text(text='Choose:', reply_markup=keyboard)
+    query.edit_message_text(text='Choose an article you want to edit:',
+                            reply_markup=keyboard)
+    query.answer()
 
     return SELECT_ACTION
 
 
 def overview(update, context):
-    update.message.reply_text('Your headers are:')
+    c_id = context.user_data['chat_id']
+    context.bot.send_message(chat_id=c_id, text='Your headers are:')
     for hdr_id in proposal.headers_id:
         text = proposal.hdr_overview(hdr_id)
-        update.message.reply_text(text=text,
-                                  parse_mode=telegram.ParseMode.HTML)
+        context.bot.send_message(chat_id=c_id, text=text,
+                                 parse_mode=telegram.ParseMode.HTML)
 
     buttons = [[
         InlineKeyboardButton(text='Create PDF', callback_data=str(CREATE_PDF)),
-        InlineKeyboardButton(text='Edit', callback_data=str(EDIT_CHOOSE))]]
+        InlineKeyboardButton(text='Edit', callback_data=str(WHAT_TO_EDIT))]]
 
     keyboard = InlineKeyboardMarkup(buttons)
-    update.message.reply_text(text='All good?', reply_markup=keyboard)
+    context.bot.send_message(chat_id=c_id, text='All good?',
+                             reply_markup=keyboard)
 
     return SELECT_ACTION
 
 
-# generate tmp file instead of hardocded one
 def html_to_pdf(update, context):
+    proposal.get_colored_titles()
     env = Environment(loader=FileSystemLoader('static/'))
     template = env.get_template('index.html')
     jinja_rendered_html = template.render(headers=proposal.hdr_dict)
@@ -181,15 +194,19 @@ def main():
 
                             CallbackQueryHandler(html_to_pdf,
                             pattern='^' + str(CREATE_PDF) + '$'),
-                     
-                            CallbackQueryHandler(edit_choose,
-                            pattern="^" + str(EDIT_CHOOSE) + '$'),
+
+                            CallbackQueryHandler(what_to_edit,
+                            pattern='^' + str(WHAT_TO_EDIT) + '$'),
 
                             CallbackQueryHandler(edit_header,
-                            pattern=f'.+{EDIT_HEADER}$')],
+                            pattern=f'.+{EDIT_HEADER}$'),
 
-            STORE_DATA: [MessageHandler(Filters.text, store_data)]
+                            CallbackQueryHandler(overview,
+                            pattern='^' + str(OVERVIEW) + '$')],
+
+            STORE_DATA: [MessageHandler(Filters.text, store_data)],
         },
+
         fallbacks=[CommandHandler('end', end)],
 
         allow_reentry=True

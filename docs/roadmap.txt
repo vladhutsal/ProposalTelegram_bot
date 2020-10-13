@@ -1,15 +1,14 @@
 BOT:
 create an overview - done
-weasyprint config
+weasyprint config - done
 add date, name of creator
 add new engineers
-how to handle default headers data (dict in dict?)
+how to handle default headers data (dict in dict?) - done
 create tests
-create restart function
-errors handling
+create restart function - done
 
 create blue word in the end of the headers title
 
 optional:
-create edit function
+create edit function - done
 create loger with line number

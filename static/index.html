@@ -16,14 +16,17 @@
              <p>01.01.2001 <strong>Prepared by Sergey</strong></p>
 
 <!-- iterating through headers dict -->
-            {% for header_code, title_content in headers.items() %}
-               {% set title = headers[header_code][0] %}
-               {% set content = headers[header_code][1] %}
+            {% for hdr_id in headers.keys() %}
+               {% set title_white = headers[hdr_id][0][0] %}
+               {% set title_blue = headers[hdr_id][0][1] %}
 
-               {% if '_list' in header_code %}
-                 {% set list = headers[header_code][1].split('\n') %}
+               {% set content = headers[hdr_id][1] %}
 
-                  <h2>{{ title }}</h2>
+<!-- if there is no tags (like '_list' or '_line') we show just title and content -->
+               {% if '_list' in hdr_id %}
+                 {% set list = headers[hdr_id][1].split('\n') %}
+
+                  <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
 
                   {% for list_item in list %}
                     <ul>
@@ -35,15 +38,14 @@
 
                   <hr/>
 
-               {% elif '_line' in header_code %}
+               {% elif '_line' in hdr_id %}
 
-                  <h2>{{ title }}</h2>
+                  <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
                   <p>{{ content }}</p>
 
-<!-- if there is no tags (like _list or _line) we show just title and content -->
                {% else %}
 
-                  <h2>{{ title }}</h2>
+                  <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
                   <p>{{ content }}</p>
 
                {% endif %}
