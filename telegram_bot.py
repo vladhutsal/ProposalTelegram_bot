@@ -30,7 +30,7 @@ proposal = Proposal()
 
 STORE_DATA, SELECT_ACTION = map(chr, range(2))
 CREATE_PROPOSAL, TEST, CREATE_PDF, OVERVIEW = map(chr, range(3, 7))
-CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, ADD_INFO = map(chr, range(8, 12))
+CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO = map(chr, range(8, 13))
 
 
 def start(update, context):
@@ -58,13 +58,18 @@ def query_handler(update, context):
     if CREATE_PROPOSAL in query.data:
         proposal.current_dict = proposal.content_dict
         proposal.reset_iter()
+        context.user_data['stage'] = CREATE_PROPOSAL
 
     elif ADD_INFO in query.data:
         proposal.current_dict = proposal.info_dict
         proposal.reset_iter()
+        context.user_data['stage'] = ADD_INFO
 
     elif ADD_ENGINEER in query.data:
         proposal.current_dict = proposal.engineer_dict
+    
+    elif CHOOSE_ENGINEER in query.data:
+        pass
 
     elif EDIT_TITLE in query.data:
         query = update.callback_query
@@ -109,10 +114,10 @@ def overview(update, context):
         title_name = proposal.get_bold_title(title_id)
         context.bot.send_message(chat_id=c_id, text=title_name,
                                  parse_mode=telegram.ParseMode.HTML)
-
     buttons = [[
         InlineKeyboardButton(text='Continue', callback_data=str(ADD_INFO)),
-        InlineKeyboardButton(text='Edit', callback_data=str(CHOOSE_TITLE_TO_EDIT))]]
+        InlineKeyboardButton(text='Edit', callback_data=str(CHOOSE_TITLE_TO_EDIT))
+    ]]
 
     keyboard = InlineKeyboardMarkup(buttons)
     context.bot.send_message(chat_id=c_id, text='All good?',
