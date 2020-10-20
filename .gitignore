@@ -8,6 +8,9 @@ __pycache__/
 *.html
 !index.html
 credentials.py
+bot.py
+database_ctrl.py
+
 
 # C extensions
 *.so
