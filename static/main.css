@@ -1,29 +1,14 @@
-/* css Page rule, to define output pdf page-size 
-https://developer.mozilla.org/en-US/docs/Web/CSS/@page  */
-
 @page {
-  size: portrait;
+  size: auto;
   margin: 0;
-  height: auto;
+  height: 20000px;
 }
 
-.font-weight.small {
-  font-weight: 300;
-}
-
-.font-weight.medium {
-  font-weight: 400;
-}
-
-.font-weight.large {
-  font-weight: 600;
-}
 
 body {
   color: white;
   background-color: #0F0F0F;
   font-family: 'Montserrat', sans-serif;
-  padding: 3rem 1rem;
 }
 
 h1,
@@ -38,6 +23,13 @@ h3 {
   max-width: 45rem;
   margin: 0 auto 8rem auto;
 }
+.header {
+  margin-top: 1em;
+}
+.header h1,
+.header p {
+  margin-top: -1.4em;
+}
 
 ul {
   list-style: none;
@@ -45,14 +37,13 @@ ul {
   padding-left: 0;
 }
 li p {
-	margin: 0;
-	padding: 0;
+  margin: 0;
+  padding: 0;
 }
 
 li p:before {
   content: "◦";
   font-weight: 900;
-  font-size: larger;
   color: #FFEC01;
   padding-right: 0.3em;
   margin-left: -1em;
@@ -74,47 +65,64 @@ div .accented {
   background-color: #20A6C7;
   width: 3em;
   height: 4em;
-  margin-bottom: -6em;
   margin-left: -3.2em;
+  margin-bottom: -3.5em;
 }
 div .estimation {
   background-color: #1B1B1B;
-  display: flex;
-  flex-wrap: wrap; 
   padding-top: 1em;
   margin-left: -3.2em;
   padding-left: 3.2em;
 }
+.estimation h2 {
+  width: 50%;
+}
 div .time {
   margin-left: 10em;
 }
-div .time h3{
+div .time h3,
+div .time p{
   margin: 0;
+  margin-top: 0.3em;
 }
-.estimation h2 {
-  /*margin: auto; */
+
+.inlineheaders {
+  display: flex;
+  flex-wrap: wrap;
 }
+.lineitem {
+  max-width: 50%;
+}
+
 .team {
   display: flex;
   flex-wrap: wrap;
-  max-width: 100%;
+  width: 100%;
+  margin-left: 0; 
+}
+.team p {
+  font-size: 0.8em;
 }
 
 .person {
   display: flex;
-  justify-content: space-between;
-  margin: 1em;
+  flex-wrap: wrap;
+  margin: 0 1em 1em 0;
   background-color: #0F0F0F;
-  border-radius: 1em;
+  border-radius: 0.3em;
+  width: 47%;
 }
+
 .person img {
+  display: inline-flex;
+  vertical-align: top;
   border-radius: 2em;
-  margin: 1em;
+  margin: 1em 1em 1em 1em;
   width: 4em;
   height: 4em;
 }
 .person .credits {
-  margin: 1em
+  margin: 1em 1em 1em 0em;
 }
 .person .credits p {
   margin: 0;
@@ -129,14 +137,13 @@ div .time h3{
   padding: 0;
 }
 .price p {
-  margin: 0;
+  margin: auto;
   padding: 0;
-}
-hr {
-  color: #272727;
+  text-align: center;
 }
 
 .utor-logo {
-  padding-left: 35em;
-  margin-bottom: -4em;
+position: absolute;
+right: 0;
+top: 0;
 }

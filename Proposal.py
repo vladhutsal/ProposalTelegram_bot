@@ -1,61 +1,71 @@
-
 class Proposal:
 
     def __init__(self):
-        self.hdr_dict = {
-                    'MCG': ['Main current Goal', ''],
-                    'CE_list': ['Client Expectations', ''],
-                    'NPS_list': ['Next potential Steps', ''],
-                    'TOPS': ['Type of provided Services', ''],
-                    'RT_line': ['Report Types', ''],
-                    'EHPW_line': ['Expected hours per Week', ''],
-                    'VA_list': ['Value Added', '']}
-
-        self.info_dict = {
-                    'Pb': '',   # Prepared by
-                    'CD': '',   # Creation date
-                    'DL': ''}   # Deadlines
-        
-        self.engineer_dict = {
-                    'N': '',    # Name
-                    'P': '',    # Position
-                    'RT': '',   # Rate
-                    'EM': '',   # Email
-                    'PHT': ''   # Photo
+        self.content_dict = {
+            # '<title-id>_<html-position>': ['<title>', '<content>']
+            'MCG': ['Main current Goal', ''],
+            'CE_list': ['Client Expectations', ''],
+            'NPS_list': ['Next potential Steps', ''],
+            'TOPS': ['Type of provided Services', ''],
+            'RT_line': ['Report Types', ''],
+            'EHPW_line': ['Expected hours per Week', ''],
+            'VA_list': ['Value Added', '']
         }
 
-        self.headers_id = self.hdr_dict.keys()
-        self.go_through = None
-        self.edit_all = True
-        self.current_hdr = None
+        self.info_dict = {
+            'PB': ['Prepared by', ''],
+            'CD': ['Creation date', ''],
+            'DL': ['Deadlines', '']
+        }
 
-    def get_next_header(self):
+        self.engineer_dict = {
+            'N': ['Name', ''],
+            'P': ['Position', ''],
+            'RT': ['Rate', ''],
+            'EM': ['Email', ''],
+            'PHT': ['Photo', '']
+        }
+
+        self.stages_dict = {
+            'content_dict': self.content_dict,
+            'info_dict': self.info_dict,
+            'engineer_dict': self.engineer_dict
+        }
+        
+        self.current_dict = None
+        self.current_title_id = None
+
+        self.dict_id_iterator = None
+
+        self.edit_all = True
+        self.stage = None
+
+    def reset_iter(self):
+        if self.dict_id_iterator:
+            self.dict_id_iterator = None
+
+        self.dict_id_iterator = (title for title in self.current_dict.keys())
+
+    def get_next_title_id(self):
         try:
-            return next(self.go_through)
+            return next(self.dict_id_iterator)
         except StopIteration as end:
             raise end
-    
-    def reset_iter(self):
-        self.go_through = None
-        self.go_through = (hdr for hdr in self.headers_id)
 
-    def get_hdr_name(self, ):
-        return self.hdr_dict[self.current_hdr][0]
+    def store_content(self, text):
+        self.current_dict[self.current_title_id][1] = text
 
-    def store_text(self, text):
-        self.hdr_dict[self.current_hdr][1] = text
-
-# do it in a better way
-    def hdr_overview(self, header):
-        header_name = self.hdr_dict[header][0]
-        header_content = self.hdr_dict[header][1]
-        return f'<b>{header_name}</b>\n{header_content}'
+    def get_bold_title(self, title_id):
+        title_name = self.current_dict[title_id][0]
+        title_content = self.current_dict[title_id][1]
+        return f'<b>{title_name}</b>\n{title_content}'
 
     def get_colored_titles(self):
-        for hdr_id in self.headers_id:
-            title = self.hdr_dict[hdr_id][0]
+        self.title_dict = self.content_dict.copy()
+        for title_id in self.title_id:
+            title = self.content_dict[title_id][0]
 
             title_white = title.split(' ')[0:-1]
             title_blue = title.split(' ')[-1]
             title_white = ' '.join(title_white)
-            self.hdr_dict[hdr_id][0] = [title_white, f' {title_blue}']
+            self.title_dict[title_id][0] = [title_white, f' {title_blue}']
