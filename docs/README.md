@@ -2,6 +2,9 @@
 
 Bot for creating PDF file from styled HTML. User can fill the document fields via Telegram bot and get a PDF as an output.
 
+**Expected and fact PDF comparison** - https://github.com/vladhutsal/HTMLtoPDF_TelegramBot/blob/master/docs/expected_vs_fact.jpg
+**Roadmap.txt** - https://github.com/vladhutsal/HTMLtoPDF_TelegramBot/blob/master/docs/roadmap.txt
+
 ## Prerequisites
 ### 1. Clone git repo:
 ```
