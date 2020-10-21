@@ -17,16 +17,16 @@
 		<h1 class="font-weight large">UTOR Proposal</h1>
              <p>01.01.2001 <strong>Prepared by Sergey</strong></p>
 
-<!-- iterating through headers dict -->
-            {% for hdr_id in headers.keys() %}
-               {% set title_white = headers[hdr_id][0][0] %}
-               {% set title_blue = headers[hdr_id][0][1] %}
+<!-- iterating through titles dict -->
+            {% for title_id in titles.keys() %}
+               {% set title_white = titles[title_id][0][0] %}
+               {% set title_blue = titles[title_id][0][1] %}
 
-               {% set content = headers[hdr_id][1] %}
+               {% set content = titles[title_id][1] %}
 
 <!-- if there is no tags (like '_list' or '_line') we show just title and content -->
-               {% if '_list' in hdr_id %}
-                 {% set list = headers[hdr_id][1].split('\n') %}
+               {% if '_list' in title_id %}
+                 {% set list = titles[title_id][1].split('\n') %}
 
                   <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
 
@@ -40,7 +40,7 @@
 
                   <hr/>
 
-               {% elif '_line' in hdr_id %}
+               {% elif '_line' in title_id %}
 
                   <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
                   <p>{{ content }}</p>

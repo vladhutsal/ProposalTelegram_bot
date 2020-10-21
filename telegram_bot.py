@@ -27,13 +27,20 @@ from telegram.ext import (
 logging.getLogger('apscheduler.scheduler').propagate = False
 proposal = Proposal()
 
-
+# add query constats, eg CREATE_PROPOSAL ADD_ENGINEER CHOOSE_ENGINEER ADD_INFO ADD_ENGINEER_TO_PROPOSAL
 STORE_DATA, SELECT_ACTION = map(chr, range(2))
 CREATE_PROPOSAL, TEST, CREATE_PDF, OVERVIEW = map(chr, range(3, 7))
-CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO = map(chr, range(8, 13))
+CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO, ADD_ENGINEER_TO_PROPOSAL, ADD_NEW_ENGINEER = map(chr, range(8, 15))
+
+templates = {
+    CREATE_PROPOSAL: proposal.get_template_dict('content_dict'),
+    ADD_INFO: proposal.get_template_dict('info_dict'),
+    ADD_NEW_ENGINEER: proposal.get_template_dict('new_engineer_dict')
+}
 
 
 def start(update, context):
+    # reset content dict when restarting proposal
     context.user_data['chat_id'] = update.message.chat_id
 
     buttons = [[
@@ -55,27 +62,19 @@ def query_handler(update, context):
     update.callback_query.answer()
     query = update.callback_query
 
-    if CREATE_PROPOSAL in query.data:
-        proposal.current_dict = proposal.content_dict
-        proposal.reset_iter()
-        context.user_data['stage'] = CREATE_PROPOSAL
-
-    elif ADD_INFO in query.data:
-        proposal.current_dict = proposal.info_dict
-        proposal.reset_iter()
-        context.user_data['stage'] = ADD_INFO
-
-    elif ADD_ENGINEER in query.data:
-        proposal.current_dict = proposal.engineer_dict
-    
-    elif CHOOSE_ENGINEER in query.data:
-        pass
-
-    elif EDIT_TITLE in query.data:
+    if EDIT_TITLE in query.data:
         query = update.callback_query
         proposal.current_title_id = query.data.split(',')[0]
         proposal.edit_all = False
         return show_title(update, context)
+
+    if ADD_NEW_ENGINEER in query.data:
+        proposal.current_dict = proposal.add_new_engineer()
+    else:
+        proposal.current_dict = templates[query.data]
+
+    context.user_data['stage'] = str(query.data)
+    proposal.reset_iter()
 
     return next_title(update, context)
 
@@ -90,9 +89,9 @@ def next_title(update, context):
 
 def show_title(update, context):
     title_id = proposal.current_title_id
-    title = proposal.current_dict[title_id][0]
+    title_name = proposal.get_bold_title(title_id)
     context.bot.send_message(chat_id=context.user_data['chat_id'],
-                             text=title)
+                             text=title_name)
     return STORE_DATA
 
 
@@ -114,8 +113,18 @@ def overview(update, context):
         title_name = proposal.get_bold_title(title_id)
         context.bot.send_message(chat_id=c_id, text=title_name,
                                  parse_mode=telegram.ParseMode.HTML)
+
+    stage = context.user_data['stage']
+    if str(ADD_INFO) in stage or str(ADD_NEW_ENGINEER) in stage:
+        print(ord(stage))
+        text = 'Choose engineers'
+        callback_data = CHOOSE_ENGINEER
+    else:
+        text = 'Continue'
+        callback_data = ADD_INFO
+
     buttons = [[
-        InlineKeyboardButton(text='Continue', callback_data=str(ADD_INFO)),
+        InlineKeyboardButton(text=text, callback_data=callback_data),
         InlineKeyboardButton(text='Edit', callback_data=str(CHOOSE_TITLE_TO_EDIT))
     ]]
 
@@ -147,11 +156,50 @@ def choose_title_to_edit(update, context):
     return SELECT_ACTION
 
 
+# ================ ENGINEERS >>>>>>>>>>
+def choose_engineers(update, context):
+    query = update.callback_query
+    engineers = proposal.get_template_dict('engineers_dict')
+    buttons = []
+    for engineer_id in engineers.keys():
+        # engineers_dict = 'engineer_id': {'title_id': ['title_name', 'title_content']}
+        # so to get name, first find 'engineer_id' dict, then 'title_id' for Name title ('N'),
+        # then get [1] element for 'title_name' of that engineer
+        engineer_name = engineers.get(engineer_id)['N'][1]
+        if str(engineer_id) not in proposal.engineers_in_proposal:
+            btn = [InlineKeyboardButton(text=engineer_name,
+                                        callback_data=f'{engineer_id}, {str(ADD_ENGINEER_TO_PROPOSAL)}')]
+            buttons.append(btn)
+    back_btn = [InlineKeyboardButton(text='Continue',
+                                     callback_data=str(CREATE_PDF))]
+    buttons.append(back_btn)
+
+    add_new_engineer_btn = [InlineKeyboardButton(text='Add new engineer',
+                                                 callback_data=str(ADD_NEW_ENGINEER))]
+    buttons.append(add_new_engineer_btn)
+
+    keyboard = InlineKeyboardMarkup(buttons)
+    query.edit_message_text(text='Choose engineers: ',
+                            reply_markup=keyboard)
+    query.answer()
+
+    return SELECT_ACTION
+
+
+def add_engineer_to_proposal(update, context):
+    query = update.callback_query
+    proposal.engineers_in_proposal += query.data.split(',')[0]
+
+    query.answer()
+    return choose_engineers(update, context)
+
+
+# ================ HTML TO PDF >>>>>>>>>>
 def html_to_pdf(update, context):
     proposal.get_colored_titles()
     env = Environment(loader=FileSystemLoader('static/'))
     template = env.get_template('index.html')
-    jinja_rendered_html = template.render(titles=proposal.content_dict)
+    jinja_rendered_html = template.render(titles=proposal.colored_titles_dict)
 
     tmp_html_file = tempfile.NamedTemporaryFile(suffix='.html', delete=False)
     tmp_pdf_file = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
@@ -215,6 +263,17 @@ def main():
 
                             CallbackQueryHandler(query_handler,
                             pattern='^' + str(ADD_INFO) + '$'),
+
+                            CallbackQueryHandler(query_handler,
+                            pattern=str(ADD_NEW_ENGINEER)),
+
+
+                            CallbackQueryHandler(choose_engineers,
+                            pattern='^' + str(CHOOSE_ENGINEER) + '$'),
+
+                            CallbackQueryHandler(add_engineer_to_proposal,
+                            pattern=f'.+{ADD_ENGINEER_TO_PROPOSAL}$'),
+
 
                             CallbackQueryHandler(get_test_pdf_dict,
                             pattern='^' + str(TEST) + '$'),

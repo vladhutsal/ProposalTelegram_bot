@@ -1,44 +1,24 @@
+import random
+import database
+
+
 class Proposal:
 
     def __init__(self):
-        self.content_dict = {
-            # '<title-id>_<html-position>': ['<title>', '<content>']
-            'MCG': ['Main current Goal', ''],
-            'CE_list': ['Client Expectations', ''],
-            'NPS_list': ['Next potential Steps', ''],
-            'TOPS': ['Type of provided Services', ''],
-            'RT_line': ['Report Types', ''],
-            'EHPW_line': ['Expected hours per Week', ''],
-            'VA_list': ['Value Added', '']
-        }
+        self.stages = None
 
-        self.info_dict = {
-            'PB': ['Prepared by', ''],
-            'CD': ['Creation date', ''],
-            'DL': ['Deadlines', '']
-        }
-
-        self.engineer_dict = {
-            'N': ['Name', ''],
-            'P': ['Position', ''],
-            'RT': ['Rate', ''],
-            'EM': ['Email', ''],
-            'PHT': ['Photo', '']
-        }
-
-        self.stages_dict = {
-            'content_dict': self.content_dict,
-            'info_dict': self.info_dict,
-            'engineer_dict': self.engineer_dict
-        }
-        
         self.current_dict = None
         self.current_title_id = None
 
         self.dict_id_iterator = None
 
         self.edit_all = True
-        self.stage = None
+
+        self.engineers_in_proposal = []
+
+        self.colored_titles_dict = None
+
+        self.database = database
 
     def reset_iter(self):
         if self.dict_id_iterator:
@@ -61,11 +41,25 @@ class Proposal:
         return f'<b>{title_name}</b>\n{title_content}'
 
     def get_colored_titles(self):
-        self.title_dict = self.content_dict.copy()
-        for title_id in self.title_id:
-            title = self.content_dict[title_id][0]
+        template = self.get_template_dict('content_dict')
+        self.colored_titles_dict = template.copy()
+        for title_id in self.colored_titles_dict.keys():
+            title = self.colored_titles_dict[title_id][0]
 
             title_white = title.split(' ')[0:-1]
             title_blue = title.split(' ')[-1]
             title_white = ' '.join(title_white)
-            self.title_dict[title_id][0] = [title_white, f' {title_blue}']
+            self.colored_titles_dict[title_id][0] = [f'{title_white} ', title_blue]
+            print(self.colored_titles_dict[title_id][0])
+
+    def add_new_engineer(self):
+        template = self.get_template_dict('new_engineer_dict')
+        engineers_storage = self.get_template_dict('engineers_dict')
+        new_engineer = template.copy()
+        new_engineer_id = random.randint(12, 30)
+        engineers_storage[new_engineer_id] = new_engineer
+        return engineers_storage[new_engineer_id]
+
+    def get_template_dict(self, template_name):
+        return getattr(database, template_name)
+        
