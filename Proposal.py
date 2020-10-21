@@ -18,27 +18,42 @@ class Proposal:
             'DL': ['Deadlines', '']
         }
 
-        self.engineer_dict = {
+        self.new_engineer_dict = {
             'N': ['Name', ''],
             'P': ['Position', ''],
-            'RT': ['Rate', ''],
             'EM': ['Email', ''],
             'PHT': ['Photo', '']
         }
 
-        self.stages_dict = {
-            'content_dict': self.content_dict,
-            'info_dict': self.info_dict,
-            'engineer_dict': self.engineer_dict
+        self.engineers_dict = {
+            'Vlados': {
+                'id': 1,
+                'N': ['Name', 'Vlados'],
+                'P': ['Position', 'Software engineer'],
+                'EM': ['Email', 'tdge@gmail.com'],
+                'PHT': ['Photo', 'static/photo.jpg']
+            },
+            'Kekoz': {
+                'id': 2,
+                'N': ['Name', 'Kekoz'],
+                'P': ['Position', 'Intern'],
+                'EM': ['Email', 'tdge@gmail.com'],
+                'PHT': ['Photo', 'static/photo.jpg']
+            }
         }
-        
+
+        self.stages = None
+
         self.current_dict = None
         self.current_title_id = None
 
         self.dict_id_iterator = None
 
         self.edit_all = True
-        self.stage = None
+
+        self.engineers_in_proposal = []
+
+        self.colored_titles_dict = None
 
     def reset_iter(self):
         if self.dict_id_iterator:
@@ -61,11 +76,15 @@ class Proposal:
         return f'<b>{title_name}</b>\n{title_content}'
 
     def get_colored_titles(self):
-        self.title_dict = self.content_dict.copy()
-        for title_id in self.title_id:
-            title = self.content_dict[title_id][0]
+        self.colored_titles_dict = self.content_dict.copy()
+        for title_id in self.colored_titles_dict.keys():
+            title = self.colored_titles_dict[title_id][0]
 
             title_white = title.split(' ')[0:-1]
             title_blue = title.split(' ')[-1]
             title_white = ' '.join(title_white)
-            self.title_dict[title_id][0] = [title_white, f' {title_blue}']
+            self.colored_titles_dict[title_id][0] = [f'{title_white} ', title_blue]
+            print(self.colored_titles_dict[title_id][0])
+
+    def get_engineers_dict(self):
+        return self.engineers_dict

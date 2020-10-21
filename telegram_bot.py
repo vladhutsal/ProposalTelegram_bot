@@ -27,13 +27,19 @@ from telegram.ext import (
 logging.getLogger('apscheduler.scheduler').propagate = False
 proposal = Proposal()
 
-
 STORE_DATA, SELECT_ACTION = map(chr, range(2))
 CREATE_PROPOSAL, TEST, CREATE_PDF, OVERVIEW = map(chr, range(3, 7))
-CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO = map(chr, range(8, 13))
+CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO, ADD_ENGINEER_TO_PROPOSAL = map(chr, range(8, 14))
+
+stages = {
+    CREATE_PROPOSAL: proposal.content_dict,
+    ADD_INFO: proposal.info_dict,
+    ADD_ENGINEER: proposal.new_engineer_dict
+}
 
 
 def start(update, context):
+    # reset content dict when restarting proposal
     context.user_data['chat_id'] = update.message.chat_id
 
     buttons = [[
@@ -55,27 +61,18 @@ def query_handler(update, context):
     update.callback_query.answer()
     query = update.callback_query
 
-    if CREATE_PROPOSAL in query.data:
-        proposal.current_dict = proposal.content_dict
-        proposal.reset_iter()
-        context.user_data['stage'] = CREATE_PROPOSAL
-
-    elif ADD_INFO in query.data:
-        proposal.current_dict = proposal.info_dict
-        proposal.reset_iter()
-        context.user_data['stage'] = ADD_INFO
-
-    elif ADD_ENGINEER in query.data:
-        proposal.current_dict = proposal.engineer_dict
-    
-    elif CHOOSE_ENGINEER in query.data:
-        pass
-
-    elif EDIT_TITLE in query.data:
+    if EDIT_TITLE in query.data:
         query = update.callback_query
         proposal.current_title_id = query.data.split(',')[0]
         proposal.edit_all = False
         return show_title(update, context)
+
+    proposal.current_dict = stages[query.data]
+    context.user_data['stage'] = query.data
+    proposal.reset_iter()
+
+    if ADD_INFO in query.data:
+        context.user_data['stage'] = CHOOSE_ENGINEER
 
     return next_title(update, context)
 
@@ -90,9 +87,9 @@ def next_title(update, context):
 
 def show_title(update, context):
     title_id = proposal.current_title_id
-    title = proposal.current_dict[title_id][0]
+    title_name = proposal.get_bold_title(title_id)
     context.bot.send_message(chat_id=context.user_data['chat_id'],
-                             text=title)
+                             text=title_name)
     return STORE_DATA
 
 
@@ -114,8 +111,16 @@ def overview(update, context):
         title_name = proposal.get_bold_title(title_id)
         context.bot.send_message(chat_id=c_id, text=title_name,
                                  parse_mode=telegram.ParseMode.HTML)
+
+    if context.user_data['stage'] == CHOOSE_ENGINEER:
+        text = 'Choose engineers'
+        callback_data = CHOOSE_ENGINEER
+    else:
+        text = 'Continue'
+        callback_data = ADD_INFO
+
     buttons = [[
-        InlineKeyboardButton(text='Continue', callback_data=str(ADD_INFO)),
+        InlineKeyboardButton(text=text, callback_data=callback_data),
         InlineKeyboardButton(text='Edit', callback_data=str(CHOOSE_TITLE_TO_EDIT))
     ]]
 
@@ -147,11 +152,43 @@ def choose_title_to_edit(update, context):
     return SELECT_ACTION
 
 
+def choose_engineers(update, context):
+    query = update.callback_query
+    engineers = proposal.get_engineers_dict()
+    buttons = []
+    for engineer in engineers.keys():
+        engineer_id = engineers.get(engineer)['id']
+        if str(engineer_id) not in proposal.engineers_in_proposal:
+            print('ENGINEER ID: ', engineer_id)
+            btn = [InlineKeyboardButton(text=engineer,
+                                        callback_data=f'{engineer_id}, {str(ADD_ENGINEER_TO_PROPOSAL)}')]
+            buttons.append(btn)
+    back_btn = [InlineKeyboardButton(text='Continue',
+                                    callback_data=str(CREATE_PDF))]
+    buttons.append(back_btn)
+
+    keyboard = InlineKeyboardMarkup(buttons)
+    query.edit_message_text(text='Choose engineers: ',
+                            reply_markup=keyboard)
+    query.answer()
+
+    return SELECT_ACTION
+
+
+def add_engineer_to_proposal(update, context):
+    query = update.callback_query
+    proposal.engineers_in_proposal += query.data.split(',')[0]
+    print('ENGINEER IN PROPOSAL NOW: ', proposal.engineers_in_proposal)
+
+    query.answer()
+    return choose_engineers(update, context)
+
+
 def html_to_pdf(update, context):
     proposal.get_colored_titles()
     env = Environment(loader=FileSystemLoader('static/'))
     template = env.get_template('index.html')
-    jinja_rendered_html = template.render(titles=proposal.content_dict)
+    jinja_rendered_html = template.render(titles=proposal.colored_titles_dict)
 
     tmp_html_file = tempfile.NamedTemporaryFile(suffix='.html', delete=False)
     tmp_pdf_file = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
@@ -215,6 +252,14 @@ def main():
 
                             CallbackQueryHandler(query_handler,
                             pattern='^' + str(ADD_INFO) + '$'),
+
+
+                            CallbackQueryHandler(choose_engineers,
+                            pattern='^' + str(CHOOSE_ENGINEER) + '$'),
+
+                            CallbackQueryHandler(add_engineer_to_proposal,
+                            pattern=f'.+{ADD_ENGINEER_TO_PROPOSAL}$'),
+
 
                             CallbackQueryHandler(get_test_pdf_dict,
                             pattern='^' + str(TEST) + '$'),
