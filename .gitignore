@@ -10,6 +10,7 @@ __pycache__/
 credentials.py
 bot.py
 database_ctrl.py
+static/photo.jpg
 
 
 # C extensions
