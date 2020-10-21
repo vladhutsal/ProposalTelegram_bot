@@ -1,47 +1,10 @@
+import random
+import database
+
+
 class Proposal:
 
     def __init__(self):
-        self.content_dict = {
-            # '<title-id>_<html-position>': ['<title>', '<content>']
-            'MCG': ['Main current Goal', ''],
-            'CE_list': ['Client Expectations', ''],
-            'NPS_list': ['Next potential Steps', ''],
-            'TOPS': ['Type of provided Services', ''],
-            'RT_line': ['Report Types', ''],
-            'EHPW_line': ['Expected hours per Week', ''],
-            'VA_list': ['Value Added', '']
-        }
-
-        self.info_dict = {
-            'PB': ['Prepared by', ''],
-            'CD': ['Creation date', ''],
-            'DL': ['Deadlines', '']
-        }
-
-        self.new_engineer_dict = {
-            'N': ['Name', ''],
-            'P': ['Position', ''],
-            'EM': ['Email', ''],
-            'PHT': ['Photo', '']
-        }
-
-        self.engineers_dict = {
-            'Vlados': {
-                'id': 1,
-                'N': ['Name', 'Vlados'],
-                'P': ['Position', 'Software engineer'],
-                'EM': ['Email', 'tdge@gmail.com'],
-                'PHT': ['Photo', 'static/photo.jpg']
-            },
-            'Kekoz': {
-                'id': 2,
-                'N': ['Name', 'Kekoz'],
-                'P': ['Position', 'Intern'],
-                'EM': ['Email', 'tdge@gmail.com'],
-                'PHT': ['Photo', 'static/photo.jpg']
-            }
-        }
-
         self.stages = None
 
         self.current_dict = None
@@ -54,6 +17,8 @@ class Proposal:
         self.engineers_in_proposal = []
 
         self.colored_titles_dict = None
+
+        self.database = database
 
     def reset_iter(self):
         if self.dict_id_iterator:
@@ -76,7 +41,8 @@ class Proposal:
         return f'<b>{title_name}</b>\n{title_content}'
 
     def get_colored_titles(self):
-        self.colored_titles_dict = self.content_dict.copy()
+        template = self.get_template_dict('content_dict')
+        self.colored_titles_dict = template.copy()
         for title_id in self.colored_titles_dict.keys():
             title = self.colored_titles_dict[title_id][0]
 
@@ -86,5 +52,14 @@ class Proposal:
             self.colored_titles_dict[title_id][0] = [f'{title_white} ', title_blue]
             print(self.colored_titles_dict[title_id][0])
 
-    def get_engineers_dict(self):
-        return self.engineers_dict
+    def add_new_engineer(self):
+        template = self.get_template_dict('new_engineer_dict')
+        engineers_storage = self.get_template_dict('engineers_dict')
+        new_engineer = template.copy()
+        new_engineer_id = random.randint(12, 30)
+        engineers_storage[new_engineer_id] = new_engineer
+        return engineers_storage[new_engineer_id]
+
+    def get_template_dict(self, template_name):
+        return getattr(database, template_name)
+        

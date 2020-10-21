@@ -27,14 +27,15 @@ from telegram.ext import (
 logging.getLogger('apscheduler.scheduler').propagate = False
 proposal = Proposal()
 
+# add query constats, eg CREATE_PROPOSAL ADD_ENGINEER CHOOSE_ENGINEER ADD_INFO ADD_ENGINEER_TO_PROPOSAL
 STORE_DATA, SELECT_ACTION = map(chr, range(2))
 CREATE_PROPOSAL, TEST, CREATE_PDF, OVERVIEW = map(chr, range(3, 7))
-CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO, ADD_ENGINEER_TO_PROPOSAL = map(chr, range(8, 14))
+CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO, ADD_ENGINEER_TO_PROPOSAL, ADD_NEW_ENGINEER = map(chr, range(8, 15))
 
-stages = {
-    CREATE_PROPOSAL: proposal.content_dict,
-    ADD_INFO: proposal.info_dict,
-    ADD_ENGINEER: proposal.new_engineer_dict
+templates = {
+    CREATE_PROPOSAL: proposal.get_template_dict('content_dict'),
+    ADD_INFO: proposal.get_template_dict('info_dict'),
+    ADD_NEW_ENGINEER: proposal.get_template_dict('new_engineer_dict')
 }
 
 
@@ -67,12 +68,13 @@ def query_handler(update, context):
         proposal.edit_all = False
         return show_title(update, context)
 
-    proposal.current_dict = stages[query.data]
-    context.user_data['stage'] = query.data
-    proposal.reset_iter()
+    if ADD_NEW_ENGINEER in query.data:
+        proposal.current_dict = proposal.add_new_engineer()
+    else:
+        proposal.current_dict = templates[query.data]
 
-    if ADD_INFO in query.data:
-        context.user_data['stage'] = CHOOSE_ENGINEER
+    context.user_data['stage'] = str(query.data)
+    proposal.reset_iter()
 
     return next_title(update, context)
 
@@ -112,7 +114,9 @@ def overview(update, context):
         context.bot.send_message(chat_id=c_id, text=title_name,
                                  parse_mode=telegram.ParseMode.HTML)
 
-    if context.user_data['stage'] == CHOOSE_ENGINEER:
+    stage = context.user_data['stage']
+    if str(ADD_INFO) in stage or str(ADD_NEW_ENGINEER) in stage:
+        print(ord(stage))
         text = 'Choose engineers'
         callback_data = CHOOSE_ENGINEER
     else:
@@ -152,20 +156,27 @@ def choose_title_to_edit(update, context):
     return SELECT_ACTION
 
 
+# ================ ENGINEERS >>>>>>>>>>
 def choose_engineers(update, context):
     query = update.callback_query
-    engineers = proposal.get_engineers_dict()
+    engineers = proposal.get_template_dict('engineers_dict')
     buttons = []
-    for engineer in engineers.keys():
-        engineer_id = engineers.get(engineer)['id']
+    for engineer_id in engineers.keys():
+        # engineers_dict = 'engineer_id': {'title_id': ['title_name', 'title_content']}
+        # so to get name, first find 'engineer_id' dict, then 'title_id' for Name title ('N'),
+        # then get [1] element for 'title_name' of that engineer
+        engineer_name = engineers.get(engineer_id)['N'][1]
         if str(engineer_id) not in proposal.engineers_in_proposal:
-            print('ENGINEER ID: ', engineer_id)
-            btn = [InlineKeyboardButton(text=engineer,
+            btn = [InlineKeyboardButton(text=engineer_name,
                                         callback_data=f'{engineer_id}, {str(ADD_ENGINEER_TO_PROPOSAL)}')]
             buttons.append(btn)
     back_btn = [InlineKeyboardButton(text='Continue',
-                                    callback_data=str(CREATE_PDF))]
+                                     callback_data=str(CREATE_PDF))]
     buttons.append(back_btn)
+
+    add_new_engineer_btn = [InlineKeyboardButton(text='Add new engineer',
+                                                 callback_data=str(ADD_NEW_ENGINEER))]
+    buttons.append(add_new_engineer_btn)
 
     keyboard = InlineKeyboardMarkup(buttons)
     query.edit_message_text(text='Choose engineers: ',
@@ -178,12 +189,12 @@ def choose_engineers(update, context):
 def add_engineer_to_proposal(update, context):
     query = update.callback_query
     proposal.engineers_in_proposal += query.data.split(',')[0]
-    print('ENGINEER IN PROPOSAL NOW: ', proposal.engineers_in_proposal)
 
     query.answer()
     return choose_engineers(update, context)
 
 
+# ================ HTML TO PDF >>>>>>>>>>
 def html_to_pdf(update, context):
     proposal.get_colored_titles()
     env = Environment(loader=FileSystemLoader('static/'))
@@ -252,6 +263,9 @@ def main():
 
                             CallbackQueryHandler(query_handler,
                             pattern='^' + str(ADD_INFO) + '$'),
+
+                            CallbackQueryHandler(query_handler,
+                            pattern=str(ADD_NEW_ENGINEER)),
 
 
                             CallbackQueryHandler(choose_engineers,
