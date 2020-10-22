@@ -6,7 +6,7 @@ import tempfile
 
 from credentials import token
 from tests.test_pdf import create_lorem_dict
-from Proposal import Proposal
+from Proposal import Proposal, ProposalDBHandler
 
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
@@ -24,6 +24,7 @@ from telegram.ext import (
 
 logging.getLogger('apscheduler.scheduler').propagate = False
 proposal = Proposal()
+db_handler = ProposalDBHandler('proposal.db')
 
 # add query constats, eg CREATE_PROPOSAL ADD_ENGINEER CHOOSE_ENGINEER ADD_INFO ADD_ENGINEER_TO_PROPOSAL
 STORE_DATA, SELECT_ACTION = map(chr, range(2))
@@ -109,7 +110,7 @@ def store_data(update, context):
 # ================ EDIT AND OVERVIEW
 def overview(update, context):
     context.bot.send_message(chat_id=context.user_data['chat_id'],
-                             text='Your titles are:')
+                             text='Info you`ve provided:')
     for title_id in proposal.current_dict.keys():
         title = proposal.get_bold_title(title_id)
         context.bot.send_message(chat_id=context.user_data['chat_id'],
@@ -145,12 +146,11 @@ def choose_title_to_edit(update, context):
     buttons = []
     for title_id in proposal.current_dict.keys():
         btn = [InlineKeyboardButton(text=f'{current_dict[title_id][0]}',
-                                    callback_data=f'{title_id}, {str(EDIT_TITLE)}')]
+                                    callback_data=f'{title_id}, {EDIT_TITLE}')]
         buttons.append(btn)
 
-    back_btn = [InlineKeyboardButton(text='<< GO BACK',
-                                     callback_data=str(OVERVIEW))]
-    buttons.append(back_btn)
+    buttons = add_button('<< Go back', OVERVIEW, buttons)
+
     keyboard = InlineKeyboardMarkup(buttons)
     query.edit_message_text(text='Choose a title you want to edit:',
                             reply_markup=keyboard)
@@ -162,23 +162,20 @@ def choose_title_to_edit(update, context):
 # ================ ENGINEERS
 def choose_engineers(update, context):
     query = update.callback_query
-    engineers = proposal.get_template_dict('engineers_dict')
+    engineers = proposal.db_inst.all_engineers
 
     buttons = []
-    for engineer_id in engineers.keys():
-        # engineers_dict = 'engineer_id': {'title_id': ['title_name', 'title_content']}
-        # so to get name, first find 'engineer_id' dict, then 'title_id' for Name title ('N'),
-        # then get [1] element for 'title_name' of that engineer
-        engineer_name = engineers.get(engineer_id)['N'][1]
+    for engineer_id in engineers:
+        engineer_name = proposal.db_inst.get_engineer_info('name')
         if engineer_id not in proposal.engineers_in_proposal:
-            btn = [InlineKeyboardButton(text=engineer_name,
-                                        callback_data=f'{engineer_id}, {ADD_ENGINEER_TO_PROPOSAL}')]
-            buttons.append(btn)
+            buttons = add_button(engineer_name,
+                                 f'{engineer_id}, {ADD_ENGINEER_TO_PROPOSAL}',
+                                 buttons)
 
-    buttons = additional_button('Continue', CREATE_PDF, buttons)
-    buttons = additional_button('Add new engineer',
-                                f'{ADD_NEW_ENGINEER}, {INIT_TEMP}',
-                                buttons)
+    buttons = add_button('Continue', CREATE_PDF, buttons)
+    buttons = add_button('Add new engineer',
+                         f'{ADD_NEW_ENGINEER}, {INIT_TEMP}',
+                         buttons)
 
     keyboard = InlineKeyboardMarkup(buttons)
     query.edit_message_text(text='Choose engineers: ',
@@ -201,7 +198,7 @@ def detach_id_from_callback(query_data):
     return query_data.split(',')[0]
 
 
-def additional_button(text, callback, buttons):
+def add_button(text, callback, buttons):
     btn = [InlineKeyboardButton(text=text,
                                 callback_data=callback)]
     buttons.append(btn)
@@ -210,10 +207,10 @@ def additional_button(text, callback, buttons):
 
 # ================ HTML TO PDF
 def html_to_pdf(update, context):
-    proposal.get_colored_titles()
+    colored_titles_dict = proposal.get_colored_titles()
     env = Environment(loader=FileSystemLoader('static/'))
     template = env.get_template('index.html')
-    jinja_rendered_html = template.render(titles=proposal.colored_titles_dict)
+    jinja_rendered_html = template.render(titles=colored_titles_dict)
 
     tmp_html_file = tempfile.NamedTemporaryFile(suffix='.html', delete=False)
     tmp_pdf_file = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
