@@ -9,12 +9,10 @@ from tests.test_pdf import create_lorem_dict
 from Proposal import Proposal
 
 from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML, CSS
+from weasyprint import HTML
 from telegram import (
     InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    ReplyKeyboardMarkup,
-    KeyboardButton)
+    InlineKeyboardButton)
 
 from telegram.ext import (
     Updater,
@@ -30,7 +28,7 @@ proposal = Proposal()
 # add query constats, eg CREATE_PROPOSAL ADD_ENGINEER CHOOSE_ENGINEER ADD_INFO ADD_ENGINEER_TO_PROPOSAL
 STORE_DATA, SELECT_ACTION = map(chr, range(2))
 CREATE_PROPOSAL, TEST, CREATE_PDF, OVERVIEW = map(chr, range(3, 7))
-CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO, ADD_ENGINEER_TO_PROPOSAL, ADD_NEW_ENGINEER = map(chr, range(8, 15))
+CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO, ADD_ENGINEER_TO_PROPOSAL, ADD_NEW_ENGINEER, INIT_TEMP= map(chr, range(8, 16))
 
 templates = {
     CREATE_PROPOSAL: proposal.get_template_dict('content_dict'),
@@ -45,7 +43,7 @@ def start(update, context):
 
     buttons = [[
         InlineKeyboardButton(text='Create new proposal',
-                             callback_data=str(CREATE_PROPOSAL)),
+                             callback_data=f'{CREATE_PROPOSAL}, {INIT_TEMP}'),
         InlineKeyboardButton(text='Test',
                              callback_data=str(TEST))
     ]]
@@ -58,32 +56,33 @@ def start(update, context):
     return SELECT_ACTION
 
 
-def query_handler(update, context):
-    update.callback_query.answer()
+def initialize_template(update, context):
     query = update.callback_query
+    template = detach_id_from_callback(query.data)
 
-    if EDIT_TITLE in query.data:
-        query = update.callback_query
-        proposal.current_title_id = query.data.split(',')[0]
-        proposal.edit_all = False
-        return show_title(update, context)
-
-    if ADD_NEW_ENGINEER in query.data:
-        proposal.current_dict = proposal.add_new_engineer()
-    else:
-        proposal.current_dict = templates[query.data]
-
-    context.user_data['stage'] = str(query.data)
+    proposal.current_template = template
+    proposal.current_dict = templates[template]
     proposal.reset_iter()
+    query.answer()
 
     return next_title(update, context)
 
 
+def edit_title(update, context):
+    query = update.callback_query
+    proposal.current_title_id = detach_id_from_callback(query)
+    proposal.edit_all = False
+    return show_title(update, context)
+
+
+# ================ FILL TEMPLATES WITH DATA
 def next_title(update, context):
     try:
         proposal.current_title_id = proposal.get_next_title_id()
         return show_title(update, context)
     except StopIteration:
+        if proposal.current_template == ADD_NEW_ENGINEER:
+            proposal.save_new_engineer_to_db()
         return overview(update, context)
 
 
@@ -91,7 +90,8 @@ def show_title(update, context):
     title_id = proposal.current_title_id
     title_name = proposal.get_bold_title(title_id)
     context.bot.send_message(chat_id=context.user_data['chat_id'],
-                             text=title_name)
+                             text=title_name,
+                             parse_mode=telegram.ParseMode.HTML)
     return STORE_DATA
 
 
@@ -106,30 +106,33 @@ def store_data(update, context):
         return overview(update, context)
 
 
+# ================ EDIT AND OVERVIEW
 def overview(update, context):
-    c_id = context.user_data['chat_id']
-    context.bot.send_message(chat_id=c_id, text='Your titles are:')
+    context.bot.send_message(chat_id=context.user_data['chat_id'],
+                             text='Your titles are:')
     for title_id in proposal.current_dict.keys():
-        title_name = proposal.get_bold_title(title_id)
-        context.bot.send_message(chat_id=c_id, text=title_name,
+        title = proposal.get_bold_title(title_id)
+        context.bot.send_message(chat_id=context.user_data['chat_id'],
+                                 text=title,
                                  parse_mode=telegram.ParseMode.HTML)
 
-    stage = context.user_data['stage']
-    if str(ADD_INFO) in stage or str(ADD_NEW_ENGINEER) in stage:
-        print(ord(stage))
+    if proposal.current_template == CREATE_PROPOSAL:
+        text = 'Add info'
+        callback_data = f'{ADD_INFO}, {INIT_TEMP}'
+    else:
         text = 'Choose engineers'
         callback_data = CHOOSE_ENGINEER
-    else:
-        text = 'Continue'
-        callback_data = ADD_INFO
 
     buttons = [[
-        InlineKeyboardButton(text=text, callback_data=callback_data),
-        InlineKeyboardButton(text='Edit', callback_data=str(CHOOSE_TITLE_TO_EDIT))
+        InlineKeyboardButton(text=text,
+                             callback_data=callback_data),
+        InlineKeyboardButton(text='Edit',
+                             callback_data=str(CHOOSE_TITLE_TO_EDIT))
     ]]
 
     keyboard = InlineKeyboardMarkup(buttons)
-    context.bot.send_message(chat_id=c_id, text='All good?',
+    context.bot.send_message(chat_id=context.user_data['chat_id'],
+                             text='All good?',
                              reply_markup=keyboard)
     return SELECT_ACTION
 
@@ -156,27 +159,26 @@ def choose_title_to_edit(update, context):
     return SELECT_ACTION
 
 
-# ================ ENGINEERS >>>>>>>>>>
+# ================ ENGINEERS
 def choose_engineers(update, context):
     query = update.callback_query
     engineers = proposal.get_template_dict('engineers_dict')
+
     buttons = []
     for engineer_id in engineers.keys():
         # engineers_dict = 'engineer_id': {'title_id': ['title_name', 'title_content']}
         # so to get name, first find 'engineer_id' dict, then 'title_id' for Name title ('N'),
         # then get [1] element for 'title_name' of that engineer
         engineer_name = engineers.get(engineer_id)['N'][1]
-        if str(engineer_id) not in proposal.engineers_in_proposal:
+        if engineer_id not in proposal.engineers_in_proposal:
             btn = [InlineKeyboardButton(text=engineer_name,
-                                        callback_data=f'{engineer_id}, {str(ADD_ENGINEER_TO_PROPOSAL)}')]
+                                        callback_data=f'{engineer_id}, {ADD_ENGINEER_TO_PROPOSAL}')]
             buttons.append(btn)
-    back_btn = [InlineKeyboardButton(text='Continue',
-                                     callback_data=str(CREATE_PDF))]
-    buttons.append(back_btn)
 
-    add_new_engineer_btn = [InlineKeyboardButton(text='Add new engineer',
-                                                 callback_data=str(ADD_NEW_ENGINEER))]
-    buttons.append(add_new_engineer_btn)
+    buttons = additional_button('Continue', CREATE_PDF, buttons)
+    buttons = additional_button('Add new engineer',
+                                f'{ADD_NEW_ENGINEER}, {INIT_TEMP}',
+                                buttons)
 
     keyboard = InlineKeyboardMarkup(buttons)
     query.edit_message_text(text='Choose engineers: ',
@@ -188,13 +190,25 @@ def choose_engineers(update, context):
 
 def add_engineer_to_proposal(update, context):
     query = update.callback_query
-    proposal.engineers_in_proposal += query.data.split(',')[0]
+    proposal.engineers_in_proposal += detach_id_from_callback(query)
 
     query.answer()
     return choose_engineers(update, context)
 
 
-# ================ HTML TO PDF >>>>>>>>>>
+# ================ HELPERS
+def detach_id_from_callback(query_data):
+    return query_data.split(',')[0]
+
+
+def additional_button(text, callback, buttons):
+    btn = [InlineKeyboardButton(text=text,
+                                callback_data=callback)]
+    buttons.append(btn)
+    return buttons
+
+
+# ================ HTML TO PDF
 def html_to_pdf(update, context):
     proposal.get_colored_titles()
     env = Environment(loader=FileSystemLoader('static/'))
@@ -252,20 +266,8 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            SELECT_ACTION: [CallbackQueryHandler(query_handler,
-                            pattern='^' + str(CREATE_PROPOSAL) + '$'),
-
-                            CallbackQueryHandler(query_handler,
-                            pattern=f'.+{EDIT_TITLE}$'),
-
-                            CallbackQueryHandler(query_handler,
-                            pattern='^' + str(ADD_ENGINEER) + '$'),
-
-                            CallbackQueryHandler(query_handler,
-                            pattern='^' + str(ADD_INFO) + '$'),
-
-                            CallbackQueryHandler(query_handler,
-                            pattern=str(ADD_NEW_ENGINEER)),
+            SELECT_ACTION: [CallbackQueryHandler(initialize_template,
+                            pattern=f'.+{INIT_TEMP}$'),
 
 
                             CallbackQueryHandler(choose_engineers,
@@ -274,6 +276,9 @@ def main():
                             CallbackQueryHandler(add_engineer_to_proposal,
                             pattern=f'.+{ADD_ENGINEER_TO_PROPOSAL}$'),
 
+
+                            CallbackQueryHandler(edit_title,
+                            pattern=f'.+{EDIT_TITLE}$'),
 
                             CallbackQueryHandler(get_test_pdf_dict,
                             pattern='^' + str(TEST) + '$'),
