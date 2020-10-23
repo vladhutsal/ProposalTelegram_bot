@@ -24,7 +24,7 @@ class ProposalDBHandler():
                     name text NOT NULL UNIQUE,
                     position text NOT NULL,
                     email text NOT NULL,
-                    photo text NOT NULL
+                    photo blob NOT NULL
                 ); """
         if conn is not None:
             try:
@@ -59,19 +59,20 @@ class ProposalDBHandler():
         return None
 
     @engineers_table_exists
-    def add_new_engineer_to_db(self, template_engineer_dict):
+    def store_new_engineer_to_db(self, template_engineer_dict):
         db_list = [field for field in template_engineer_dict.values()]
         content = (db_list[0][1], db_list[1][1], db_list[2][1], db_list[3][1])
 
         conn = self.create_connection()
-        with conn:
-            try:
-                conn.execute(''' insert into engineers(name,position,email,photo)
-                             values(?,?,?,?)''', content)
-            except IntegrityError:
-                return 'This engineer is already in db'
+        curr = conn.cursor()
+        try:
+            curr.execute(''' insert into engineers(name,position,email,photo)
+                            values(?,?,?,?)''', content)
+            conn.commit()
+        except IntegrityError:
+            return 'This engineer is already in db'
 
-        print(f'Engineer with id {conn.cursor().lastrowid} was added to DB')
+        print(f'Engineer with id {curr.lastrowid} was added to DB')
         conn.close()
 
     def serialize(self, content, content_type):

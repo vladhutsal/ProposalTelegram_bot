@@ -3,6 +3,7 @@
 import telegram
 import logging
 import tempfile
+import random
 
 from credentials import token
 from tests.test_pdf import create_lorem_dict
@@ -30,7 +31,7 @@ db_handler = ProposalDBHandler('proposal.db')
 # add query constats, eg CREATE_PROPOSAL ADD_ENGINEER CHOOSE_ENGINEER ADD_INFO ADD_ENGINEER_TO_PROPOSAL
 STORE_DATA, SELECT_ACTION = map(chr, range(2))
 CREATE_PROPOSAL, TEST, CREATE_PDF, OVERVIEW = map(chr, range(3, 7))
-CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO, ADD_ENGINEER_TO_PROPOSAL, ADD_NEW_ENGINEER, INIT_TEMP= map(chr, range(8, 16))
+CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO, ADD_ENGINEER_TO_PROPOSAL, ADD_NEW_ENGINEER, INIT_TEMP, STORE_PHOTO= map(chr, range(8, 17))
 
 templates = {
     CREATE_PROPOSAL: proposal.get_template_dict('content_dict'),
@@ -89,7 +90,7 @@ def next_title(update, context):
         return show_title(update, context)
     except StopIteration:
         if proposal.current_template == ADD_NEW_ENGINEER:
-            err = db_handler.add_new_engineer_to_db(proposal.current_dict)
+            err = db_handler.store_new_engineer_to_db(proposal.current_dict)
             if err:
                 show_error_message(update, context)
         return overview(update, context)
@@ -104,9 +105,25 @@ def show_title(update, context):
     return STORE_DATA
 
 
+def store_photo(update, context):
+    random_name = random.randint(12, 23412)
+    photo_path = f'temp_files/{random_name}.jpg'
+
+    photo_info = update.message.photo[-1]
+    file_id = photo_info.file_id
+    File_obj = context.bot.get_file(file_id=file_id)
+    File_obj.download(custom_path=photo_path)
+
+    with open(photo_path, 'rb') as photo:
+        bytes_photo = photo.read()
+        proposal.store_content(bytes_photo)
+
+    return next_title(update, context)
+
+
 def store_data(update, context):
-    user_text = update.message.text
-    proposal.store_content(user_text)
+    user_content = update.message.text
+    proposal.store_content(user_content)
 
     if proposal.edit_all:
         return next_title(update, context)
@@ -122,9 +139,9 @@ def overview(update, context):
     for title_id in proposal.current_dict.keys():
         title = proposal.get_bold_title(title_id)
         content = proposal.get_title_content(title_id)
-        context.bot.send_message(chat_id=context.user_data['chat_id'],
-                                 text=f'{title}\n{content}',
-                                 parse_mode=telegram.ParseMode.HTML)
+        # context.bot.send_message(chat_id=context.user_data['chat_id'],
+        #                          text=f'{title}\n{content}',
+        #                          parse_mode=telegram.ParseMode.HTML)
 
     if proposal.current_template == CREATE_PROPOSAL:
         text = 'Add info'
@@ -151,7 +168,6 @@ def choose_title_to_edit(update, context):
     query = update.callback_query
     current_dict = proposal.current_dict
 
-# show buttons for all titles of current dictionary
     buttons = []
     for title_id in proposal.current_dict.keys():
         btn = [InlineKeyboardButton(text=f'{current_dict[title_id][0]}',
@@ -257,8 +273,9 @@ def send_pdf(context, update):
     return ConversationHandler.END
 
 
+# ================ GENERATE TEST PDF
 def get_test_pdf_dict(update, context):
-    proposal.content_dict = create_lorem_dict(proposal.content_dict)
+    proposal.current_dict = create_lorem_dict(proposal.current_dict)
     update.callback_query.answer()
 
     return html_to_pdf(update, context)
@@ -289,8 +306,9 @@ def main():
                             CallbackQueryHandler(edit_title,
                             pattern=f'.+{EDIT_TITLE}$'),
 
+
                             CallbackQueryHandler(get_test_pdf_dict,
-                            pattern='^' + str(TEST) + '$'),
+                            pattern=TEST),
 
                             CallbackQueryHandler(html_to_pdf,
                             pattern='^' + str(CREATE_PDF) + '$'),
@@ -301,7 +319,8 @@ def main():
                             CallbackQueryHandler(overview,
                             pattern='^' + str(OVERVIEW) + '$')],
 
-            STORE_DATA: [MessageHandler(Filters.text, store_data)],
+            STORE_DATA: [MessageHandler(Filters.text, store_data),
+                         MessageHandler(Filters.photo, store_photo)]
         },
 
         fallbacks=[CommandHandler('end', end)],

@@ -28,8 +28,8 @@ class Proposal:
     def get_template_dict(self, template_name):
         return getattr(templates, template_name)
 
-    def store_content(self, text):
-        self.current_dict[self.current_title_id][1] = text
+    def store_content(self, content):
+        self.current_dict[self.current_title_id][1] = content
 
     def get_bold_title(self, title_id):
         title_name = self.current_dict[title_id][0]
