@@ -23,20 +23,3 @@ new_engineer_dict = {
     'EM': ['Email', ''],
     'PHT': ['Photo', '']
 }
-
-
-# SAVED CONTENT EXAPLE
-engineers_dict = {
-    '1': {
-        'N': ['Name', 'Vlados'],
-        'P': ['Position', 'Software engineer'],
-        'EM': ['Email', 'tdge@gmail.com'],
-        'PHT': ['Photo', 'static/photo.jpg']
-    },
-    '2': {
-        'N': ['Name', 'Kekoz'],
-        'P': ['Position', 'Intern'],
-        'EM': ['Email', 'tdge@gmail.com'],
-        'PHT': ['Photo', 'static/photo.jpg']
-    }
-}

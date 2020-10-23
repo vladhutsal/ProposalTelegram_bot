@@ -6,7 +6,8 @@ import tempfile
 
 from credentials import token
 from tests.test_pdf import create_lorem_dict
-from Proposal import Proposal, ProposalDBHandler
+from Proposal import Proposal
+from ProposalDBHandler import ProposalDBHandler
 
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
@@ -44,7 +45,7 @@ def start(update, context):
 
     buttons = [[
         InlineKeyboardButton(text='Create new proposal',
-                             callback_data=f'{CREATE_PROPOSAL}, {INIT_TEMP}'),
+                             callback_data=f'{ADD_NEW_ENGINEER}, {INIT_TEMP}'),
         InlineKeyboardButton(text='Test',
                              callback_data=str(TEST))
     ]]
@@ -83,7 +84,7 @@ def next_title(update, context):
         return show_title(update, context)
     except StopIteration:
         if proposal.current_template == ADD_NEW_ENGINEER:
-            proposal.save_new_engineer_to_db()
+            db_handler.save_new_engineer_to_db(proposal.current_dict)
         return overview(update, context)
 
 
@@ -113,8 +114,9 @@ def overview(update, context):
                              text='Info you`ve provided:')
     for title_id in proposal.current_dict.keys():
         title = proposal.get_bold_title(title_id)
+        content = proposal.get_title_content(title_id)
         context.bot.send_message(chat_id=context.user_data['chat_id'],
-                                 text=title,
+                                 text=f'{title}\n{content}',
                                  parse_mode=telegram.ParseMode.HTML)
 
     if proposal.current_template == CREATE_PROPOSAL:
@@ -162,15 +164,18 @@ def choose_title_to_edit(update, context):
 # ================ ENGINEERS
 def choose_engineers(update, context):
     query = update.callback_query
-    engineers = proposal.db_inst.all_engineers
+    engineers = db_handler.get_all_engineers_id()
+    print('ENGINEERS ID LIST:::', engineers)
 
     buttons = []
-    for engineer_id in engineers:
-        engineer_name = proposal.db_inst.get_engineer_info('name')
-        if engineer_id not in proposal.engineers_in_proposal:
-            buttons = add_button(engineer_name,
-                                 f'{engineer_id}, {ADD_ENGINEER_TO_PROPOSAL}',
-                                 buttons)
+    if engineers:
+        for engineer_id in engineers:
+            engineer_name = db_handler.get_engineer_info(engineer_id, 'name')
+            print('ENGINEER NAME', engineer_name)
+            if engineer_id not in proposal.engineers_in_proposal:
+                buttons = add_button(engineer_name,
+                                     f'{engineer_id}, {ADD_ENGINEER_TO_PROPOSAL}',
+                                     buttons)
 
     buttons = add_button('Continue', CREATE_PDF, buttons)
     buttons = add_button('Add new engineer',
@@ -187,7 +192,7 @@ def choose_engineers(update, context):
 
 def add_engineer_to_proposal(update, context):
     query = update.callback_query
-    proposal.engineers_in_proposal += detach_id_from_callback(query)
+    proposal.engineers_in_proposal += detach_id_from_callback(query.data)
 
     query.answer()
     return choose_engineers(update, context)
