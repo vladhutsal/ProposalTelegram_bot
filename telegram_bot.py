@@ -77,6 +77,11 @@ def edit_title(update, context):
     return show_title(update, context)
 
 
+def show_error_message(update, context):
+    context.bot.send_message(chat_id=context.user_data['chat_id'],
+                             text='This engineer is already in db')
+
+
 # ================ FILL TEMPLATES WITH DATA
 def next_title(update, context):
     try:
@@ -84,7 +89,9 @@ def next_title(update, context):
         return show_title(update, context)
     except StopIteration:
         if proposal.current_template == ADD_NEW_ENGINEER:
-            db_handler.save_new_engineer_to_db(proposal.current_dict)
+            err = db_handler.add_new_engineer_to_db(proposal.current_dict)
+            if err:
+                show_error_message(update, context)
         return overview(update, context)
 
 
@@ -165,13 +172,11 @@ def choose_title_to_edit(update, context):
 def choose_engineers(update, context):
     query = update.callback_query
     engineers = db_handler.get_all_engineers_id()
-    print('ENGINEERS ID LIST:::', engineers)
 
     buttons = []
     if engineers:
         for engineer_id in engineers:
             engineer_name = db_handler.get_engineer_info(engineer_id, 'name')
-            print('ENGINEER NAME', engineer_name)
             if engineer_id not in proposal.engineers_in_proposal:
                 buttons = add_button(engineer_name,
                                      f'{engineer_id}, {ADD_ENGINEER_TO_PROPOSAL}',
@@ -192,15 +197,17 @@ def choose_engineers(update, context):
 
 def add_engineer_to_proposal(update, context):
     query = update.callback_query
-    proposal.engineers_in_proposal += detach_id_from_callback(query.data)
-
+    curr_list = proposal.engineers_in_proposal
+    engineer_id = detach_id_from_callback(query.data)
+    curr_list.append(int(engineer_id))
     query.answer()
     return choose_engineers(update, context)
 
 
 # ================ HELPERS
 def detach_id_from_callback(query_data):
-    return query_data.split(',')[0]
+    res = query_data.split(',')[0]
+    return res
 
 
 def add_button(text, callback, buttons):

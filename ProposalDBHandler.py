@@ -1,10 +1,12 @@
 import sqlite3
-from sqlite3 import Error
+from sqlite3 import Error, IntegrityError
+from decorators import engineers_table_exists
 
 
 class ProposalDBHandler():
     def __init__(self, path):
         self.db_path = path
+        self.table_exc = None
 
     def create_connection(self):
         database_path = self.db_path
@@ -35,6 +37,7 @@ class ProposalDBHandler():
         conn.close()
         return False
 
+    @engineers_table_exists
     def get_engineer_info(self, obj_id, field_name):
         conn = self.create_connection()
         curr = conn.cursor()
@@ -44,6 +47,7 @@ class ProposalDBHandler():
         conn.close()
         return self.serialize(field_content, 'obj')
 
+    @engineers_table_exists
     def get_all_engineers_id(self):
         conn = self.create_connection()
         curr = conn.cursor()
@@ -54,17 +58,20 @@ class ProposalDBHandler():
             return self.serialize(engineers_id, 'list')
         return None
 
-    def save_new_engineer_to_db(self, template_engineer_dict):
+    @engineers_table_exists
+    def add_new_engineer_to_db(self, template_engineer_dict):
         db_list = [field for field in template_engineer_dict.values()]
         content = (db_list[0][1], db_list[1][1], db_list[2][1], db_list[3][1])
 
         conn = self.create_connection()
         with conn:
-            curr = conn.cursor()
-            curr.execute(''' insert into engineers(name,position,email,photo)
-                    values(?,?,?,?)''', content)
-            conn.commit()
-        print(f'Engineer with id {curr.lastrowid} was added to DB')
+            try:
+                conn.execute(''' insert into engineers(name,position,email,photo)
+                             values(?,?,?,?)''', content)
+            except IntegrityError:
+                return 'This engineer is already in db'
+
+        print(f'Engineer with id {conn.cursor().lastrowid} was added to DB')
         conn.close()
 
     def serialize(self, content, content_type):
