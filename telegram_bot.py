@@ -3,10 +3,9 @@
 import telegram
 import logging
 import tempfile
-import random
 
 from credentials import token
-from tests.test_pdf import create_lorem_dict
+from test_pdf import create_lorem_dict
 from Proposal import Proposal
 from ProposalDBHandler import ProposalDBHandler
 
@@ -34,9 +33,9 @@ CREATE_PROPOSAL, TEST, CREATE_PDF, OVERVIEW = map(chr, range(3, 7))
 CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO, ADD_ENGINEER_TO_PROPOSAL, ADD_NEW_ENGINEER, INIT_TEMP, STORE_PHOTO= map(chr, range(8, 17))
 
 templates = {
-    CREATE_PROPOSAL: proposal.get_template_dict('content_dict'),
-    ADD_INFO: proposal.get_template_dict('info_dict'),
-    ADD_NEW_ENGINEER: proposal.get_template_dict('new_engineer_dict')
+    CREATE_PROPOSAL:    proposal.content_template,
+    ADD_INFO:           proposal.info_template,
+    ADD_NEW_ENGINEER:   proposal.engineer_template
 }
 
 
@@ -46,7 +45,7 @@ def start(update, context):
 
     buttons = [[
         InlineKeyboardButton(text='Create new proposal',
-                             callback_data=f'{ADD_NEW_ENGINEER}, {INIT_TEMP}'),
+                             callback_data=f'{CREATE_PROPOSAL}, {INIT_TEMP}'),
         InlineKeyboardButton(text='Test',
                              callback_data=str(TEST))
     ]]
@@ -61,8 +60,8 @@ def start(update, context):
 
 def initialize_template(update, context):
     query = update.callback_query
-    template = detach_id_from_callback(query.data)
 
+    template = detach_id_from_callback(query.data)
     proposal.current_template = template
     proposal.current_dict = templates[template]
     proposal.reset_iter()
@@ -73,7 +72,7 @@ def initialize_template(update, context):
 
 def edit_title(update, context):
     query = update.callback_query
-    proposal.current_title_id = detach_id_from_callback(query)
+    proposal.current_title_id = detach_id_from_callback(query.data)
     proposal.edit_all = False
     return show_title(update, context)
 
@@ -91,6 +90,7 @@ def next_title(update, context):
     except StopIteration:
         if proposal.current_template == ADD_NEW_ENGINEER:
             err = db_handler.store_new_engineer_to_db(proposal.current_dict)
+            proposal.reset_engineer_template()
             if err:
                 show_error_message(update, context)
         return overview(update, context)
@@ -106,17 +106,15 @@ def show_title(update, context):
 
 
 def store_photo(update, context):
-    random_name = random.randint(12, 23412)
-    photo_path = f'temp_files/{random_name}.jpg'
-
     photo_info = update.message.photo[-1]
     file_id = photo_info.file_id
     File_obj = context.bot.get_file(file_id=file_id)
-    File_obj.download(custom_path=photo_path)
 
-    with open(photo_path, 'rb') as photo:
-        bytes_photo = photo.read()
-        proposal.store_content(bytes_photo)
+    dir_path = 'engineers_photo/'
+    name = proposal.get_random_name()
+    photo_path = f'{dir_path}{name}.jpg'
+    File_obj.download(custom_path=photo_path)
+    proposal.store_content(photo_path)
 
     return next_title(update, context)
 
@@ -139,9 +137,9 @@ def overview(update, context):
     for title_id in proposal.current_dict.keys():
         title = proposal.get_bold_title(title_id)
         content = proposal.get_title_content(title_id)
-        # context.bot.send_message(chat_id=context.user_data['chat_id'],
-        #                          text=f'{title}\n{content}',
-        #                          parse_mode=telegram.ParseMode.HTML)
+        context.bot.send_message(chat_id=context.user_data['chat_id'],
+                                 text=f'{title}\n{content}',
+                                 parse_mode=telegram.ParseMode.HTML)
 
     if proposal.current_template == CREATE_PROPOSAL:
         text = 'Add info'
@@ -192,16 +190,16 @@ def choose_engineers(update, context):
     buttons = []
     if engineers:
         for engineer_id in engineers:
-            engineer_name = db_handler.get_engineer_info(engineer_id, 'name')
-            if engineer_id not in proposal.engineers_in_proposal:
+            engineer_name = db_handler.get_field_info(engineer_id, 'N')
+            if engineer_id not in db_handler.engineers_in_proposal_id:
                 buttons = add_button(engineer_name,
                                      f'{engineer_id}, {ADD_ENGINEER_TO_PROPOSAL}',
                                      buttons)
 
-    buttons = add_button('Continue', CREATE_PDF, buttons)
     buttons = add_button('Add new engineer',
                          f'{ADD_NEW_ENGINEER}, {INIT_TEMP}',
                          buttons)
+    buttons = add_button('Continue', CREATE_PDF, buttons)
 
     keyboard = InlineKeyboardMarkup(buttons)
     query.edit_message_text(text='Choose engineers: ',
@@ -213,7 +211,7 @@ def choose_engineers(update, context):
 
 def add_engineer_to_proposal(update, context):
     query = update.callback_query
-    curr_list = proposal.engineers_in_proposal
+    curr_list = db_handler.engineers_in_proposal_id
     engineer_id = detach_id_from_callback(query.data)
     curr_list.append(int(engineer_id))
     query.answer()
@@ -229,16 +227,27 @@ def detach_id_from_callback(query_data):
 def add_button(text, callback, buttons):
     btn = [InlineKeyboardButton(text=text,
                                 callback_data=callback)]
+
     buttons.append(btn)
     return buttons
 
 
 # ================ HTML TO PDF
 def html_to_pdf(update, context):
-    colored_titles_dict = proposal.get_colored_titles()
+    content_dict = proposal.content_template
+    info_dict = proposal.info_template
+    engineers = proposal.engineers or db_handler.get_all_engineers_in_proposal()
+
+    print('CONTENT:::', content_dict)
+    print('INFO:::', info_dict)
+    print('ENGINEERS:::', engineers)
+
+    colored_titles_dict = proposal.get_colored_titles(content_dict)
     env = Environment(loader=FileSystemLoader('static/'))
     template = env.get_template('index.html')
-    jinja_rendered_html = template.render(titles=colored_titles_dict)
+    jinja_rendered_html = template.render(content_dict=colored_titles_dict,
+                                          info_dict=info_dict,
+                                          engineers_list_of_dicts=engineers)
 
     tmp_html_file = tempfile.NamedTemporaryFile(suffix='.html', delete=False)
     tmp_pdf_file = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
@@ -275,7 +284,10 @@ def send_pdf(context, update):
 
 # ================ GENERATE TEST PDF
 def get_test_pdf_dict(update, context):
-    proposal.current_dict = create_lorem_dict(proposal.current_dict)
+    content_template, info_template, engineers = create_lorem_dict(db_handler, proposal)
+    proposal.engineers = engineers
+    proposal.content_template = content_template
+    proposal.info_template = info_template
     update.callback_query.answer()
 
     return html_to_pdf(update, context)
