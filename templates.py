@@ -1,6 +1,6 @@
 # TEMPLATES
 
-content_dict = {
+content_template = {
     # '<title-id>_<html-position>': ['<title>', '<content>']
     'MCG': ['Main current Goal', ''],
     'CE_list': ['Client Expectations', ''],
@@ -11,15 +11,16 @@ content_dict = {
     'VA_list': ['Value Added', '']
 }
 
-info_dict = {
+info_template = {
     'PB': ['Prepared by', ''],
     'CD': ['Creation date', ''],
     'DL': ['Deadlines', '']
 }
 
-new_engineer_dict = {
+engineer_template = {
     'N': ['Name', ''],
     'P': ['Position', ''],
+    # Don`t forget to add rate
     'EM': ['Email', ''],
     'PHT': ['Photo', '']
 }
