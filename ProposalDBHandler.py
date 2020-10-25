@@ -41,15 +41,15 @@ class ProposalDBHandler(Proposal):
         return False
 
     def get_all_engineers_in_proposal(self):
-        engn_template = self.engineer_template
         list_of_engn_dicts = []
         proposal_ids = self.engineers_in_proposal_id
 
         for engn_id in proposal_ids:
-            engn_content = self.get_engineer(engn_id)
-            for title_id in engn_template.keys():
-                engn_template[title_id][1] = engn_content.pop(0)
-            list_of_engn_dicts.append(engn_template)
+            template = self.engineer_template
+            content_from_db = self.get_engineer(engn_id)
+            for title_id in template.keys():
+                template[title_id][1] = content_from_db.pop(0)
+            list_of_engn_dicts.append(template)
             self.reset_engineer_template()
         return list_of_engn_dicts
 
@@ -81,6 +81,7 @@ class ProposalDBHandler(Proposal):
         content = self.serialize(template_engineer_dict)
         conn = self.create_connection()
         cur = conn.cursor()
+        print(content)
         try:
             cur.execute(f''' insert into {self.table}(N,P,EM,PHT)
                             values(?,?,?,?)''', content)
