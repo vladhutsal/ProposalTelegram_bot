@@ -36,7 +36,7 @@ templates = {
     CREATE_PROPOSAL:    proposal.content_template,
     ADD_INFO:           proposal.info_template,
     ADD_NEW_ENGINEER:   proposal.engineer_template,
-    ADD_ENGINEERS_RATE: db_handler.engineers_rate
+    ADD_ENGINEERS_RATE: db_handler.engineers_rates
 }
 
 
@@ -70,13 +70,6 @@ def initialize_template(update, context):
     query.answer()
 
     return next_title(update, context)
-
-
-def edit_title(update, context):
-    query = update.callback_query
-    proposal.current_title_id = detach_id_from_callback(query.data)
-    proposal.edit_all = False
-    return show_title(update, context)
 
 
 # use callback query answer to show notification on top of the bots chat
@@ -119,8 +112,9 @@ def store_photo(update, context):
     dir_path = 'engineers_photo/'
     name = proposal.get_random_name()
     photo_path = f'{dir_path}{name}.jpg'
+    save_path = f'"../{dir_path}{name}.jpg"'
     File_obj.download(custom_path=photo_path)
-    proposal.store_content(photo_path)
+    proposal.store_content(save_path)
 
     return next_title(update, context)
 
@@ -131,8 +125,13 @@ def store_data(update, context):
 
     if proposal.edit_all:
         return next_title(update, context)
+
     elif not proposal.edit_all:
         proposal.edit_all = True
+        if proposal.add_rate:
+            proposal.add_rate = False
+            return choose_engineers(update, context)
+
         return overview(update, context)
 
 
@@ -188,6 +187,19 @@ def choose_title_to_edit(update, context):
     return SELECT_ACTION
 
 
+def edit_title(update, context):
+    query = update.callback_query
+    proposal.current_title_id = detach_id_from_callback(query.data)
+
+    if ADD_ENGINEERS_RATE in query.data:
+        add_engineer_to_proposal()
+        proposal.current_dict = db_handler.engineers_rates
+        print('EDIT TITLE', db_handler.engineers_rates)
+    proposal.edit_all = False
+
+    return show_title(update, context)
+
+
 # ================ ENGINEERS
 def choose_engineers(update, context):
     query = update.callback_query
@@ -199,45 +211,44 @@ def choose_engineers(update, context):
             engineer_name = db_handler.get_field_info(engineer_id, 'N')
             if engineer_id not in db_handler.engineers_in_proposal_id:
                 buttons = add_button(engineer_name,
-                                     f'{engineer_id}, {ADD_ENGINEER_TO_PROPOSAL}',
+                                     f'{engineer_id}, {ADD_ENGINEERS_RATE}, {EDIT_TITLE}',
                                      buttons)
 
-    help_btns = [[
+    help_btns = [
         InlineKeyboardButton(text='Add new engineer',
                              callback_data=f'{ADD_NEW_ENGINEER}, {INIT_TEMP}'),
         InlineKeyboardButton(text='Continue',
                              callback_data=CREATE_PDF)
-    ]]
+    ]
     buttons.append(help_btns)
 
     keyboard = InlineKeyboardMarkup(buttons)
-    query.edit_message_text(text='Choose engineers: ',
-                            reply_markup=keyboard)
-    query.answer()
+    context.bot.send_message(chat_id=context.user_data['chat_id'],
+                             text='Choose engineers: ',
+                             reply_markup=keyboard)
+    if query:
+        query.answer()
 
     return SELECT_ACTION
 
 
-def add_engineer_to_proposal(update, context):
+def add_engineer_to_proposal():
     # add engineers id to list of engineers in current proposal:
-    query = update.callback_query
+    engineer_id = proposal.current_title_id
     curr_list = db_handler.engineers_in_proposal_id
-    engineer_id = detach_id_from_callback(query.data)
     curr_list.append(int(engineer_id))
 
     # add engineers id to dictionary as key {'engn_id': ['name', 'rate']}
     engineer_name = db_handler.get_field_info(engineer_id, 'N')
-    db_handler.engineers_rate[engineer_id] = [f'Current rate for {engineer_name}', '']
-    query.answer()
-
-    return ADD_ENGINEERS_RATE
-    # return choose_engineers(update, context)
+    db_handler.engineers_rates[engineer_id] = [f'Current rate for {engineer_name}', '']
+    print(db_handler.engineers_rates)
+    proposal.add_rate = True
 
 
 # ================ HELPERS
 def detach_id_from_callback(query_data):
-    res = query_data.split(',')[0]
-    return res
+    additional_query_data = query_data.split(',')[0]
+    return additional_query_data
 
 
 def add_button(text, callback, buttons):
@@ -252,8 +263,11 @@ def html_to_pdf(update, context):
     content_dict = proposal.content_template
     info_dict = proposal.info_template
 
-    # crutch to make both test and regular modes work
-    engineers = proposal.engineers or db_handler.get_all_engineers_in_proposal()
+    #to make both test and regular modes work
+    if proposal.engineers:
+        engineers = proposal.engineers
+    
+    engineers = db_handler.get_all_engineers_in_proposal()
 
     colored_titles_dict = proposal.get_colored_titles(content_dict)
     env = Environment(loader=FileSystemLoader('static/'))
@@ -263,6 +277,7 @@ def html_to_pdf(update, context):
                                           engineers_list_of_dicts=engineers)
 
     tmp_html_file = tempfile.NamedTemporaryFile(suffix='.html', delete=False)
+    print(tmp_html_file.name)
     tmp_pdf_file = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
 
     with open(tmp_html_file.name, 'w+') as html:
@@ -330,10 +345,6 @@ def main():
 
                             CallbackQueryHandler(edit_title,
                             pattern=f'.+{EDIT_TITLE}$'),
-
-
-                            CallbackQueryHandler(add_engineers_rate,
-                            pattern=ADD_ENGINEERS_RATE),
 
                             CallbackQueryHandler(get_test_pdf_dict,
                             pattern=TEST),
