@@ -3,13 +3,15 @@ from sqlite3 import Error, IntegrityError
 from Proposal import Proposal
 
 
+# check for table existance
 class ProposalDBHandler(Proposal):
     def __init__(self, path):
         Proposal.__init__(self)
         self.db_path = path
-        self.table_exc = None
         self.table = 'proposal'
+
         self.engineers_in_proposal_id = []
+        self.engineers_rate = {}
 
     def create_connection(self):
         database_path = self.db_path
@@ -49,6 +51,14 @@ class ProposalDBHandler(Proposal):
             content_from_db = self.get_engineer(engn_id)
             for title_id in template.keys():
                 template[title_id][1] = content_from_db.pop(0)
+    # Add rate key to dictionary, that will be appended to list of engn dicts.
+    # This method used in html_to_pdf(), when all data for current proposal
+    # is retrieved from database and filled by user template-dicts.
+    # engineers_rate is a dict like: {'RT': ['name', 'rate']}
+    # field 'name' is used in show_title(), to show propper name of engineer,
+    # instead of ID.
+            rate = self.engineers_rate[engn_id][1]
+            template['RT'] = ['Rate', rate]
             list_of_engn_dicts.append(template)
             self.reset_engineer_template()
         return list_of_engn_dicts
@@ -57,8 +67,8 @@ class ProposalDBHandler(Proposal):
         conn = self.create_connection()
         cur = conn.cursor()
         cur.execute(f'select * from {self.table} where id=?', (engn_id,))
-        engineer = self.deserialize(cur.fetchall(), 'fields', conn)[1:]
-        return engineer
+        engineer = self.deserialize(cur.fetchall(), 'fields', conn)
+        return engineer[1:]
 
     def get_all_engineers_id(self):
         conn = self.create_connection()
@@ -81,7 +91,6 @@ class ProposalDBHandler(Proposal):
         content = self.serialize(template_engineer_dict)
         conn = self.create_connection()
         cur = conn.cursor()
-        print(content)
         try:
             cur.execute(f''' insert into {self.table}(N,P,EM,PHT)
                             values(?,?,?,?)''', content)
@@ -104,7 +113,7 @@ class ProposalDBHandler(Proposal):
         elif content_type == 'field':
             conn.close()
             return content[0][0]
-    
+
     def serialize(self, content):
         db_list = [field for field in content.values()]
         return (db_list[0][1], db_list[1][1], db_list[2][1], db_list[3][1])

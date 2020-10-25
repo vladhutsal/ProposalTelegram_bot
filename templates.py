@@ -20,7 +20,6 @@ info_template = {
 engineer_template = {
     'N': ['Name', ''],
     'P': ['Position', ''],
-    # Don`t forget to add rate
     'EM': ['Email', ''],
     'PHT': ['Photo', '']
 }

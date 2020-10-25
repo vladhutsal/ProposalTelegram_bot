@@ -30,16 +30,18 @@ db_handler = ProposalDBHandler('proposal.db')
 # add query constats, eg CREATE_PROPOSAL ADD_ENGINEER CHOOSE_ENGINEER ADD_INFO ADD_ENGINEER_TO_PROPOSAL
 STORE_DATA, SELECT_ACTION = map(chr, range(2))
 CREATE_PROPOSAL, TEST, CREATE_PDF, OVERVIEW = map(chr, range(3, 7))
-CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO, ADD_ENGINEER_TO_PROPOSAL, ADD_NEW_ENGINEER, INIT_TEMP, STORE_PHOTO= map(chr, range(8, 17))
+CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO, ADD_ENGINEER_TO_PROPOSAL, ADD_NEW_ENGINEER, INIT_TEMP, STORE_PHOTO, ADD_ENGINEERS_RATE= map(chr, range(8, 18))
 
 templates = {
     CREATE_PROPOSAL:    proposal.content_template,
     ADD_INFO:           proposal.info_template,
-    ADD_NEW_ENGINEER:   proposal.engineer_template
+    ADD_NEW_ENGINEER:   proposal.engineer_template,
+    ADD_ENGINEERS_RATE: db_handler.engineers_rate
 }
 
 
 def start(update, context):
+
     # reset content dict when restarting proposal
     context.user_data['chat_id'] = update.message.chat_id
 
@@ -77,6 +79,7 @@ def edit_title(update, context):
     return show_title(update, context)
 
 
+# use callback query answer to show notification on top of the bots chat
 def show_error_message(update, context):
     context.bot.send_message(chat_id=context.user_data['chat_id'],
                              text='This engineer is already in db')
@@ -89,10 +92,13 @@ def next_title(update, context):
         return show_title(update, context)
     except StopIteration:
         if proposal.current_template == ADD_NEW_ENGINEER:
+
+            # telegram_bot.py is no need to know about db_handler class
             err = db_handler.store_new_engineer_to_db(proposal.current_dict)
             proposal.reset_engineer_template()
             if err:
                 show_error_message(update, context)
+
         return overview(update, context)
 
 
@@ -196,10 +202,13 @@ def choose_engineers(update, context):
                                      f'{engineer_id}, {ADD_ENGINEER_TO_PROPOSAL}',
                                      buttons)
 
-    buttons = add_button('Add new engineer',
-                         f'{ADD_NEW_ENGINEER}, {INIT_TEMP}',
-                         buttons)
-    buttons = add_button('Continue', CREATE_PDF, buttons)
+    help_btns = [[
+        InlineKeyboardButton(text='Add new engineer',
+                             callback_data=f'{ADD_NEW_ENGINEER}, {INIT_TEMP}'),
+        InlineKeyboardButton(text='Continue',
+                             callback_data=CREATE_PDF)
+    ]]
+    buttons.append(help_btns)
 
     keyboard = InlineKeyboardMarkup(buttons)
     query.edit_message_text(text='Choose engineers: ',
@@ -210,12 +219,19 @@ def choose_engineers(update, context):
 
 
 def add_engineer_to_proposal(update, context):
+    # add engineers id to list of engineers in current proposal:
     query = update.callback_query
     curr_list = db_handler.engineers_in_proposal_id
     engineer_id = detach_id_from_callback(query.data)
     curr_list.append(int(engineer_id))
+
+    # add engineers id to dictionary as key {'engn_id': ['name', 'rate']}
+    engineer_name = db_handler.get_field_info(engineer_id, 'N')
+    db_handler.engineers_rate[engineer_id] = [f'Current rate for {engineer_name}', '']
     query.answer()
-    return choose_engineers(update, context)
+
+    return ADD_ENGINEERS_RATE
+    # return choose_engineers(update, context)
 
 
 # ================ HELPERS
@@ -227,7 +243,6 @@ def detach_id_from_callback(query_data):
 def add_button(text, callback, buttons):
     btn = [InlineKeyboardButton(text=text,
                                 callback_data=callback)]
-
     buttons.append(btn)
     return buttons
 
@@ -236,11 +251,9 @@ def add_button(text, callback, buttons):
 def html_to_pdf(update, context):
     content_dict = proposal.content_template
     info_dict = proposal.info_template
-    engineers = proposal.engineers or db_handler.get_all_engineers_in_proposal()
 
-    print('CONTENT:::', content_dict)
-    print('INFO:::', info_dict)
-    print('ENGINEERS:::', engineers)
+    # crutch to make both test and regular modes work
+    engineers = proposal.engineers or db_handler.get_all_engineers_in_proposal()
 
     colored_titles_dict = proposal.get_colored_titles(content_dict)
     env = Environment(loader=FileSystemLoader('static/'))
@@ -318,6 +331,9 @@ def main():
                             CallbackQueryHandler(edit_title,
                             pattern=f'.+{EDIT_TITLE}$'),
 
+
+                            CallbackQueryHandler(add_engineers_rate,
+                            pattern=ADD_ENGINEERS_RATE),
 
                             CallbackQueryHandler(get_test_pdf_dict,
                             pattern=TEST),

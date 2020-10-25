@@ -9,7 +9,6 @@ def create_lorem_dict(db_handler, proposal):
     cntnt_tmplt = proposal.content_template
     info_tmplt = proposal.info_template
     db_handler.engineers_in_proposal_id = [1, 2]
-    print(db_handler.engineers_in_proposal_id)
 
     puppet = {
         'N': ['Name', 'Puppet Vasya'],
@@ -24,8 +23,8 @@ def create_lorem_dict(db_handler, proposal):
         'EM': ['Email', 'petya.puppet@u-tor.com'],
         'PHT': ['Photo', 'engineers_photo/222.jpg']
     }
-    engineers = [puppet, puppet2]
-    for engineer in engineers:
+    puppet_engineers = [puppet, puppet2]
+    for engineer in puppet_engineers:
         db_handler.store_new_engineer_to_db(engineer)
 
     for title_id in cntnt_tmplt.keys():

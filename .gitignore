@@ -11,7 +11,8 @@ credentials.py
 bot.py
 database_ctrl.py
 static/photo.jpg
-
+tr.py
+engineers_photo/
 
 # C extensions
 *.so
