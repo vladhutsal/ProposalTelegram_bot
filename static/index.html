@@ -27,12 +27,11 @@
 
             {% set title_white = content_dict['CE_list'][0][0] %}
             {% set title_blue = content_dict['CE_list'][0][1] %}
-            {% set content = content_dict['CE_list'][1].split('\n') %}
-            {% set content_truncates = content[0:-1] %}
+            {% set content = content_dict['CE_list'][1].rstrip('\n').split('\n') %}
 
                <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
 
-               {% for list_el in content_truncates %}
+               {% for list_el in content %}
                   <ul>
                      <li>
                         <p>{{ list_el }}</p>
@@ -42,12 +41,11 @@
 
             {% set title_white = content_dict['NPS_list'][0][0] %}
             {% set title_blue = content_dict['NPS_list'][0][1] %}
-            {% set content = content_dict['NPS_list'][1].split('\n') %}
-            {% set content_truncates = content[0:-1] %}
+            {% set content = content_dict['NPS_list'][1].rstrip('\n').split('\n') %}
 
                <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
 
-               {% for list_el in content_truncates %}
+               {% for list_el in content %}
                   <ul>
                      <li>
                         <p>{{ list_el }}</p>
@@ -78,12 +76,11 @@
             
             {% set title_white = content_dict['VA_list'][0][0] %}
             {% set title_blue = content_dict['VA_list'][0][1] %}
-            {% set content = content_dict['VA_list'][1].split('\n') %}
-            {% set content_truncates = content[0:-1] %}
+            {% set content = content_dict['VA_list'][1].rstrip('\n').split('\n') %}
 
                <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
 
-               {% for list_el in content_truncates %}
+               {% for list_el in content %}
                   <ul>
                      <li>
                         <p>{{ list_el }}</p>
@@ -103,9 +100,9 @@
             {% set engineers = engineers_list_of_dicts %}
             {% for num in range(engineers|length) %}
 	            <div class="person">
-	              
-	                <img src="https://via.placeholder.com/150x150">
+                  
 	                
+	                <img src={{ engineers[num]['PHT'][1] }} />
 	                <div class="credits">
 	                   <strong>{{ engineers[num]['N'][1] }}</strong>
 	                  <p>{{ engineers[num]['P'][1] }}</p>
@@ -114,7 +111,7 @@
 	                </div>
 
 	                <div class="price">
-	                  <h2>$12</h2>
+	                  <h2>${{ engineers[num]['RT'][1] }}</h2>
 	                  <p>rate</p>
 	                </div>      
                </div>
