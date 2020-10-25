@@ -15,71 +15,110 @@
       </div>
 
 		<h1 class="font-weight large">UTOR Proposal</h1>
-             <p>01.01.2001 <strong>Prepared by Sergey</strong></p>
+             <p>{{ info_dict[CD] }} <strong>{{ info_dict[PB] }}</strong></p>
 
-<!-- iterating through titles dict -->
-            {% for title_id in titles.keys() %}
-               {% set title_white = titles[title_id][0][0] %}
-               {% set title_blue = titles[title_id][0][1] %}
+<!-- iterating through content_dict -->
+            {% set title_white = content_dict['MCG'][0][0] %}
+            {% set title_blue = content_dict['MCG'][0][1] %}
+            {% set content = content_dict['MCG'][1] %}
 
-               {% set content = titles[title_id][1] %}
+               <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
+               <p>{{ content }}</p>
 
-<!-- if there is no tags (like '_list' or '_line') we show just title and content -->
-               {% if '_list' in title_id %}
-                 {% set list = titles[title_id][1].split('\n') %}
+            {% set title_white = content_dict['CE_list'][0][0] %}
+            {% set title_blue = content_dict['CE_list'][0][1] %}
+            {% set content = content_dict['CE_list'][1].split('\n') %}
+            {% set content_truncates = content[0:-1] %}
 
-                  <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
+               <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
 
-                  {% for list_item in list %}
-                    <ul>
-                       <li>
-                          <p>{{ list_item }}</p>
-                       </li>
-                    </ul>
-                  {% endfor %}
+               {% for list_el in content_truncates %}
+                  <ul>
+                     <li>
+                        <p>{{ list_el }}</p>
+                     </li>
+                  </ul>
+               {% endfor %}
 
-                  <hr/>
+            {% set title_white = content_dict['NPS_list'][0][0] %}
+            {% set title_blue = content_dict['NPS_list'][0][1] %}
+            {% set content = content_dict['NPS_list'][1].split('\n') %}
+            {% set content_truncates = content[0:-1] %}
 
-               {% elif '_line' in title_id %}
+               <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
 
-                  <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
-                  <p>{{ content }}</p>
+               {% for list_el in content_truncates %}
+                  <ul>
+                     <li>
+                        <p>{{ list_el }}</p>
+                     </li>
+                  </ul>
+               {% endfor %}
 
-               {% else %}
+            {% set title_white = content_dict['TOPS'][0][0] %}
+            {% set title_blue = content_dict['TOPS'][0][1] %}
+            {% set content = content_dict['TOPS'][1] %}
 
-                  <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
-                  <p>{{ content }}</p>
+               <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
+               <p>{{ content }}</p>
 
-               {% endif %}
-            {% endfor %}
+            {% set title_white = content_dict['RT_line'][0][0] %}
+            {% set title_blue = content_dict['RT_line'][0][1] %}
+            {% set content = content_dict['RT_line'][1] %}
+
+               <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
+               <p>{{ content }}</p>
+
+            {% set title_white = content_dict['EHPW_line'][0][0] %}
+            {% set title_blue = content_dict['EHPW_line'][0][1] %}
+            {% set content = content_dict['EHPW_line'][1] %}
+
+               <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
+               <p>{{ content }}</p>
             
-	 
+            {% set title_white = content_dict['VA_list'][0][0] %}
+            {% set title_blue = content_dict['VA_list'][0][1] %}
+            {% set content = content_dict['VA_list'][1].split('\n') %}
+            {% set content_truncates = content[0:-1] %}
+
+               <h2>{{ title_white }}<span>{{ title_blue }}</span></h2>
+
+               {% for list_el in content_truncates %}
+                  <ul>
+                     <li>
+                        <p>{{ list_el }}</p>
+                     </li>
+                  </ul>
+               {% endfor %}
+            
 	    <div class="estimation">
 	      <h2>Your new <span>Team Members</span></h2>
 	      
 	      <div class="time">
 	        <p>Deadline</p>
-	        <h3>8 Dec, 2020</h3>
+	        <h3>{{ info_dict[DL] }}</h3>
 	      </div>
 
 	      <section class="team">
-
+            {% set engineers = engineers_list_of_dicts %}
+            {% for num in range(engineers|length) %}
 	            <div class="person">
 	              
 	                <img src="https://via.placeholder.com/150x150">
 	                
 	                <div class="credits">
-	                   <strong>Bob Bolan</strong>
-	                  <p>Manager</p>
+	                   <strong>{{ engineers[num]['N'][1] }}</strong>
+	                  <p>{{ engineers[num]['P'][1] }}</p>
 	                  <hr>
-	                  <p>email@dot.com</p>
+	                  <p>{{ engineers[num]['EM'][1] }}</p>
 	                </div>
 
 	                <div class="price">
 	                  <h2>$12</h2>
 	                  <p>rate</p>
 	                </div>      
-	            </div>
+               </div>
+            {% endfor %}
 
 	      </section>    
 	    </div>              
