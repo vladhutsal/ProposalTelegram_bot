@@ -8,10 +8,10 @@ class ProposalDBHandler(Proposal):
     def __init__(self, path):
         Proposal.__init__(self)
         self.db_path = path
-        self.table = 'proposal'
+        self.table = 'engineers'
 
         self.engineers_in_proposal_id = []
-        self.engineers_rate = {}
+        self.engineers_rates = {}
 
     def create_connection(self):
         database_path = self.db_path
@@ -39,7 +39,6 @@ class ProposalDBHandler(Proposal):
                 print(f'Unable to create {name} table', err)
         else:
             print('Not connected')
-        conn.close()
         return False
 
     def get_all_engineers_in_proposal(self):
@@ -54,10 +53,10 @@ class ProposalDBHandler(Proposal):
     # Add rate key to dictionary, that will be appended to list of engn dicts.
     # This method used in html_to_pdf(), when all data for current proposal
     # is retrieved from database and filled by user template-dicts.
-    # engineers_rate is a dict like: {'RT': ['name', 'rate']}
+    # engineers_rates is a dict like: {'RT': ['name', 'rate']}
     # field 'name' is used in show_title(), to show propper name of engineer,
     # instead of ID.
-            rate = self.engineers_rate[engn_id][1]
+            rate = self.engineers_rates[str(engn_id)][1]
             template['RT'] = ['Rate', rate]
             list_of_engn_dicts.append(template)
             self.reset_engineer_template()
@@ -65,6 +64,7 @@ class ProposalDBHandler(Proposal):
 
     def get_engineer(self, engn_id):
         conn = self.create_connection()
+        self.create_table()
         cur = conn.cursor()
         cur.execute(f'select * from {self.table} where id=?', (engn_id,))
         engineer = self.deserialize(cur.fetchall(), 'fields', conn)
@@ -72,6 +72,7 @@ class ProposalDBHandler(Proposal):
 
     def get_all_engineers_id(self):
         conn = self.create_connection()
+        self.create_table()
         cur = conn.cursor()
         cur.execute(f"select id from {self.table}")
         engineers_id = cur.fetchall()
@@ -81,6 +82,7 @@ class ProposalDBHandler(Proposal):
 
     def get_field_info(self, obj_id, field_name):
         conn = self.create_connection()
+        self.create_table()
         cur = conn.cursor()
         cur.execute(f"select {field_name} from {self.table} where id=?",
                     (obj_id,))
@@ -90,6 +92,7 @@ class ProposalDBHandler(Proposal):
     def store_new_engineer_to_db(self, template_engineer_dict):
         content = self.serialize(template_engineer_dict)
         conn = self.create_connection()
+        self.create_table()
         cur = conn.cursor()
         try:
             cur.execute(f''' insert into {self.table}(N,P,EM,PHT)
