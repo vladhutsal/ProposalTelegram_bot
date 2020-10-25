@@ -21,6 +21,8 @@ class Proposal:
         self.current_title_id = None
 
         self.edit_all = True
+        self.add_rate = False
+        self.engineers = None
 
     def reset_iter(self):
         if self.dict_id_iterator:
