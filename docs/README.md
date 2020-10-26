@@ -8,7 +8,7 @@ Bot for creating PDF file from styled HTML. User can fill the document fields vi
 ## Prerequisites
 ### 1. Clone git repo:
 ```
-git clone https://github.com/vladhutsal/HTML-to-PDF_TelegramBot.git
+git clone https://github.com/vladhutsal/Proposal-creator_bot
 ```
 ##### Open repository folder and go on.
 
