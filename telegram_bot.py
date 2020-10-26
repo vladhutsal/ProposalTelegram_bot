@@ -5,7 +5,6 @@ import logging
 import tempfile
 
 from credentials import token
-from test_pdf import create_lorem_dict
 from Proposal import Proposal
 from ProposalDBHandler import ProposalDBHandler
 
@@ -24,18 +23,22 @@ from telegram.ext import (
     CallbackQueryHandler)
 
 logging.getLogger('apscheduler.scheduler').propagate = False
-proposal = Proposal()
-db_handler = ProposalDBHandler('proposal.db')
+db_handler = ProposalDBHandler()
+proposal = Proposal(db_handler)
 
-# add query constats, eg CREATE_PROPOSAL ADD_ENGINEER CHOOSE_ENGINEER ADD_INFO ADD_ENGINEER_TO_PROPOSAL
+# set pattern constatnts
+
+# States for ConversationHandler:
 STORE_DATA, SELECT_ACTION = map(chr, range(2))
-CREATE_PROPOSAL, TEST, CREATE_PDF, OVERVIEW = map(chr, range(3, 7))
-CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, ADD_ENGINEER, CHOOSE_ENGINEER, ADD_INFO, ADD_ENGINEER_TO_PROPOSAL, ADD_NEW_ENGINEER, INIT_TEMP, STORE_PHOTO, ADD_ENGINEERS_RATE= map(chr, range(8, 18))
+# Templates constatns:
+CREATE_PROPOSAL, ADD_INFO, ADD_NEW_ENGINEER, ADD_ENGINEERS_RATE,  = map(chr, range(3, 7))
+# States of the proposal fill process, to show in what state bot is right now:
+CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, CHOOSE_ENGINEER, OVERVIEW, INIT_TEMP, CREATE_PDF, TEST = map(chr, range(8, 15))
 
 templates = {
-    CREATE_PROPOSAL:    proposal.content_template,
-    ADD_INFO:           proposal.info_template,
-    ADD_NEW_ENGINEER:   proposal.engineer_template,
+    CREATE_PROPOSAL:    proposal.content_dict,
+    ADD_INFO:           proposal.info_dict,
+    ADD_NEW_ENGINEER:   proposal.engineer_dict,
     ADD_ENGINEERS_RATE: db_handler.engineers_rates
 }
 
@@ -44,6 +47,7 @@ def start(update, context):
 
     # reset content dict when restarting proposal
     context.user_data['chat_id'] = update.message.chat_id
+    context.user_data['test'] = False
 
     buttons = [[
         InlineKeyboardButton(text='Create new proposal',
@@ -72,12 +76,6 @@ def initialize_template(update, context):
     return next_title(update, context)
 
 
-# use callback query answer to show notification on top of the bots chat
-def show_error_message(update, context):
-    context.bot.send_message(chat_id=context.user_data['chat_id'],
-                             text='This engineer is already in db')
-
-
 # ================ FILL TEMPLATES WITH DATA
 def next_title(update, context):
     try:
@@ -88,7 +86,7 @@ def next_title(update, context):
 
             # telegram_bot.py is no need to know about db_handler class
             err = db_handler.store_new_engineer_to_db(proposal.current_dict)
-            proposal.reset_engineer_template()
+            proposal.reset_engineer_dict()
             if err:
                 show_error_message(update, context)
 
@@ -136,6 +134,7 @@ def store_data(update, context):
 
 
 # ================ EDIT AND OVERVIEW
+# make overview more flexible, eg for engineers overview
 def overview(update, context):
     context.bot.send_message(chat_id=context.user_data['chat_id'],
                              text='Info you`ve provided:')
@@ -162,7 +161,7 @@ def overview(update, context):
 
     keyboard = InlineKeyboardMarkup(buttons)
     context.bot.send_message(chat_id=context.user_data['chat_id'],
-                             text='All good?',
+                             text='All good',
                              reply_markup=keyboard)
     return SELECT_ACTION
 
@@ -194,7 +193,6 @@ def edit_title(update, context):
     if ADD_ENGINEERS_RATE in query.data:
         add_engineer_to_proposal()
         proposal.current_dict = db_handler.engineers_rates
-        print('EDIT TITLE', db_handler.engineers_rates)
     proposal.edit_all = False
 
     return show_title(update, context)
@@ -203,7 +201,7 @@ def edit_title(update, context):
 # ================ ENGINEERS
 def choose_engineers(update, context):
     query = update.callback_query
-    engineers = db_handler.get_all_engineers_id()
+    engineers = db_handler.get_engineers_id_list()
 
     buttons = []
     if engineers:
@@ -241,7 +239,6 @@ def add_engineer_to_proposal():
     # add engineers id to dictionary as key {'engn_id': ['name', 'rate']}
     engineer_name = db_handler.get_field_info(engineer_id, 'N')
     db_handler.engineers_rates[engineer_id] = [f'Current rate for {engineer_name}', '']
-    print(db_handler.engineers_rates)
     proposal.add_rate = True
 
 
@@ -258,43 +255,49 @@ def add_button(text, callback, buttons):
     return buttons
 
 
+# use callback query answer to show notification on top of the bots chat
+def show_error_message(update, context):
+    context.bot.send_message(chat_id=context.user_data['chat_id'],
+                             text='This engineer is already in db')
+
+
+def generate_tmp_files(*args):
+    res = []
+    for suffix in args:
+        tmp_file = tempfile.NamedTemporaryFile(suffix=suffix, dir='.')
+        res.append(tmp_file)
+    return res
+
+
 # ================ HTML TO PDF
-def html_to_pdf(update, context):
-    content_dict = proposal.content_template
-    info_dict = proposal.info_template
+# how to call all next functions without update and context args?
+def generate_html(update, contex):
+    collected_data = proposal.collect_user_data_for_html()
+    print('COLLECTED DATA', collected_data)
 
-    #to make both test and regular modes work
-    if proposal.engineers:
-        engineers = proposal.engineers
-    
-    engineers = db_handler.get_all_engineers_in_proposal()
-
-    colored_titles_dict = proposal.get_colored_titles(content_dict)
     env = Environment(loader=FileSystemLoader('static/'))
     template = env.get_template('index.html')
-    jinja_rendered_html = template.render(content_dict=colored_titles_dict,
-                                          info_dict=info_dict,
-                                          engineers_list_of_dicts=engineers)
+    jinja_rendered_html = template.render(**collected_data)
+    proposal.html = generate_tmp_files('.html')[0]
 
-    tmp_html_file = tempfile.NamedTemporaryFile(suffix='.html', delete=False)
-    print(tmp_html_file.name)
-    tmp_pdf_file = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
-
-    with open(tmp_html_file.name, 'w+') as html:
+    with open(proposal.html.name, 'w+') as html:
         html.write(jinja_rendered_html)
 
-    pdf_doc = HTML(tmp_html_file.name)
+    return generate_pdf(update, contex)
+
+
+def generate_pdf(update, context):
+    pdf_doc = HTML(proposal.html.name)
     pdf_doc_rndr = pdf_doc.render(stylesheets=['static/main.css'])
     page = pdf_doc_rndr.pages[0]
-    child_list = []
-    for child in page._page_box.descendants():
-        child_list.append(child)
+    child_list = [child for child in page._page_box.descendants()]
+    # for child in page._page_box.descendants():
+    #     child_list.append(child)
     body_height = child_list[2].height
     page.height = body_height
+    proposal.pdf = generate_tmp_files('.pdf')[0]
+    pdf_doc_rndr.write_pdf(proposal.pdf.name)
 
-    pdf_doc_rndr.write_pdf(tmp_pdf_file.name)
-
-    context.user_data['tmpfile'] = tmp_pdf_file
     update.callback_query.answer()
 
     return send_pdf(context, update)
@@ -302,9 +305,8 @@ def html_to_pdf(update, context):
 
 def send_pdf(context, update):
     c_id = context.user_data['chat_id']
-    pdf = context.user_data['tmpfile']
 
-    with open(pdf.name, 'rb') as pdf:
+    with open(proposal.pdf.name, 'rb') as pdf:
         context.bot.send_document(chat_id=c_id, document=pdf)
 
     return ConversationHandler.END
@@ -312,13 +314,10 @@ def send_pdf(context, update):
 
 # ================ GENERATE TEST PDF
 def get_test_pdf_dict(update, context):
-    content_template, info_template, engineers = create_lorem_dict(db_handler, proposal)
-    proposal.engineers = engineers
-    proposal.content_template = content_template
-    proposal.info_template = info_template
+    proposal.test = True
     update.callback_query.answer()
 
-    return html_to_pdf(update, context)
+    return generate_html(update, context)
 
 
 def end():
@@ -328,7 +327,6 @@ def end():
 def main():
     updater = Updater(token=token, use_context=True)
     dispatcher = updater.dispatcher
-
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
@@ -339,9 +337,6 @@ def main():
                             CallbackQueryHandler(choose_engineers,
                             pattern='^' + str(CHOOSE_ENGINEER) + '$'),
 
-                            CallbackQueryHandler(add_engineer_to_proposal,
-                            pattern=f'.+{ADD_ENGINEER_TO_PROPOSAL}$'),
-
 
                             CallbackQueryHandler(edit_title,
                             pattern=f'.+{EDIT_TITLE}$'),
@@ -349,7 +344,7 @@ def main():
                             CallbackQueryHandler(get_test_pdf_dict,
                             pattern=TEST),
 
-                            CallbackQueryHandler(html_to_pdf,
+                            CallbackQueryHandler(generate_html,
                             pattern='^' + str(CREATE_PDF) + '$'),
 
                             CallbackQueryHandler(choose_title_to_edit,
