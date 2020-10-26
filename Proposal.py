@@ -3,16 +3,29 @@ from templates import (
     info_template,
     engineer_template
 )
+from test_pdf import create_lorem_dict
+from copy import deepcopy
 import random
 import os
-from copy import deepcopy
 
 
 class Proposal:
-    def __init__(self):
-        self.content_template = deepcopy(content_template)
-        self.info_template = deepcopy(info_template)
-        self.engineer_template = deepcopy(engineer_template)
+    # current_template = values of templates constatns,
+    # which is announced in telegram_bot.py
+    # current_template is used to match template that is active now,
+    # while user fill it with data.
+
+    # current_dict = template data, dictionary like
+    # {'title_id':['title_name', 'title_content']}
+    def __init__(self, db_handler):
+        self.db_handler = db_handler
+
+        self.content_dict = deepcopy(content_template)
+        self.info_dict = deepcopy(info_template)
+        self.engineer_dict = deepcopy(engineer_template)
+
+        self.html = None
+        self.pdf = None
 
         self.dict_id_iterator = None
 
@@ -22,7 +35,7 @@ class Proposal:
 
         self.edit_all = True
         self.add_rate = False
-        self.engineers = None
+        self.test = False
 
     def reset_iter(self):
         if self.dict_id_iterator:
@@ -30,8 +43,11 @@ class Proposal:
 
         self.dict_id_iterator = iter(self.current_dict.keys())
 
-    def reset_engineer_template(self):
-        self.engineer_template = deepcopy(engineer_template)
+    def reset_engineer_dict(self):
+        self.engineer_dict = deepcopy(engineer_template)
+
+    def store_content(self, content):
+        self.current_dict[self.current_title_id][1] = content
 
     def get_next_title_id(self):
         try:
@@ -39,8 +55,12 @@ class Proposal:
         except StopIteration as end:
             raise end
 
-    def store_content(self, content):
-        self.current_dict[self.current_title_id][1] = content
+    def get_bold_title(self, title_id):
+        title_name = self.current_dict[title_id][0]
+        return f'<b>{title_name}</b>'
+
+    def get_title_content(self, title_id):
+        return self.current_dict[title_id][1]
 
     def get_random_name(self):
         tmp_files_list = os.listdir('engineers_photo/')
@@ -49,13 +69,6 @@ class Proposal:
         if exists:
             self.get_random_name()
         return rand_nm
-
-    def get_bold_title(self, title_id):
-        title_name = self.current_dict[title_id][0]
-        return f'<b>{title_name}</b>'
-
-    def get_title_content(self, title_id):
-        return self.current_dict[title_id][1]
 
     def get_colored_titles(self, user_dict):
         # use here a function to iterate through dictionaries,
@@ -67,3 +80,16 @@ class Proposal:
             title_blue = title.split(' ')[-1]
             colored_titles_dict[title_id][0] = [f'{title_white} ', title_blue]
         return colored_titles_dict
+
+    # let it loop
+    def collect_user_data_for_html(self):
+        if self.test:
+            data = create_lorem_dict(self.db_handler, self)
+        else:
+            data = {
+                'content_dict': self.get_colored_titles(self.content_dict),
+                'info_dict': self.info_dict,
+                'engineers_list': self.db_handler.get_proposal_engineers()
+            }
+
+        return data
