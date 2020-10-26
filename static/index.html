@@ -97,12 +97,13 @@
 	      </div>
 
 	      <section class="team">
-            {% set engineers = engineers_list_of_dicts %}
+            {% set engineers = engineers_list %}
             {% for num in range(engineers|length) %}
 	            <div class="person">
                   
 	                
-	                <img src={{ engineers[num]['PHT'][1] }} />
+                   <img src={{ engineers[num]['PHT'][1] }} />
+                   <!-- <img src="../engineers_photo/Buldog-150x150.jpg" /> -->
 	                <div class="credits">
 	                   <strong>{{ engineers[num]['N'][1] }}</strong>
 	                  <p>{{ engineers[num]['P'][1] }}</p>

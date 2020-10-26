@@ -1,4 +1,4 @@
-# TEMPLATES
+# let this work, eg give a copy of dict
 
 content_template = {
     # '<title-id>_<html-position>': ['<title>', '<content>']
