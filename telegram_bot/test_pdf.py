@@ -2,8 +2,7 @@ from lorem_text import lorem
 from random import randint
 from templates import (
     content_template,
-    info_template,
-    engineer_template
+    info_template
 )
 
 

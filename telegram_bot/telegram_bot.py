@@ -273,7 +273,6 @@ def generate_tmp_files(*args):
 # how to call all next functions without update and context args?
 def generate_html(update, contex):
     collected_data = proposal.collect_user_data_for_html()
-    print('COLLECTED DATA', collected_data)
 
     env = Environment(loader=FileSystemLoader('static/'))
     template = env.get_template('index.html')
@@ -291,8 +290,7 @@ def generate_pdf(update, context):
     pdf_doc_rndr = pdf_doc.render(stylesheets=['static/main.css'])
     page = pdf_doc_rndr.pages[0]
     child_list = [child for child in page._page_box.descendants()]
-    # for child in page._page_box.descendants():
-    #     child_list.append(child)
+
     body_height = child_list[2].height
     page.height = body_height
     proposal.pdf = generate_tmp_files('.pdf')[0]
