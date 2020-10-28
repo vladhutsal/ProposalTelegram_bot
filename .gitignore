@@ -7,7 +7,7 @@ __pycache__/
 *.pdf
 *.html
 !index.html
-/credentials.py
+credentials.py
 
 # C extensions
 *.so
