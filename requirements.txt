@@ -1,4 +1,4 @@
-python-3.8.6
+python==3.8.6
 python-telegram-bot==13.0
 Jinja2==2.11.2
 WeasyPrint==51
