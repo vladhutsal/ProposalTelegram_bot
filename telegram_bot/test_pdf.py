@@ -1,6 +1,6 @@
 from lorem_text import lorem
 from random import randint
-from templates import (
+from . templates import (
     content_template,
     info_template
 )

@@ -1,9 +1,9 @@
-from templates import (
+from . templates import (
     content_template,
     info_template,
     engineer_template
 )
-from test_pdf import create_lorem_dict
+from . test_pdf import create_lorem_dict
 from copy import deepcopy
 import random
 import os

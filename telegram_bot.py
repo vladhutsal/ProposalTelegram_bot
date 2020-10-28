@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
+import os
 import telegram
 import logging
 import tempfile
 
-from credentials import token
-from Proposal import Proposal
-from ProposalDBHandler import ProposalDBHandler
+from telegram_bot.Proposal import Proposal
+from telegram_bot.ProposalDBHandler import ProposalDBHandler
 
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
@@ -21,6 +21,8 @@ from telegram.ext import (
     Filters,
     ConversationHandler,
     CallbackQueryHandler)
+
+TOKEN = '1259603530:AAHRWl9xHFeoLncdt1jhXLC2ddFLh0YMHBg'
 
 logging.getLogger('apscheduler.scheduler').propagate = False
 db_handler = ProposalDBHandler()
@@ -323,7 +325,7 @@ def end():
 
 
 def main():
-    updater = Updater(token=token, use_context=True)
+    updater = Updater(token=TOKEN, use_context=True)
     dispatcher = updater.dispatcher
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
@@ -361,7 +363,12 @@ def main():
      )
 
     dispatcher.add_handler(conv_handler)
-    updater.start_polling()
+    PORT = os.environ.get('PORT', 5000)
+    updater.start_webhook(listen='0.0.0.0',
+                          port=PORT,
+                          url_path=TOKEN)
+    updater.bot.setWebhook('https://telegram-proposal-bot.herokuapp.com/' + TOKEN)
+    updater.idle()
 
 
 if __name__ == "__main__":
