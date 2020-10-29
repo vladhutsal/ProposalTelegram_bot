@@ -4,7 +4,7 @@ import os
 import telegram
 import logging
 import tempfile
-from telegram_bot.credentials import TOKEN, URL, IP
+from telegram_bot.credentials import TOKEN
 
 from telegram_bot.Proposal import Proposal
 from telegram_bot.ProposalDBHandler import ProposalDBHandler
@@ -46,7 +46,6 @@ templates = {
 
 
 def start(update, context):
-
     # reset content dict when restarting proposal
     context.user_data['chat_id'] = update.message.chat_id
     context.user_data['test'] = False
@@ -112,7 +111,7 @@ def store_photo(update, context):
     dir_path = 'engineers_photo/'
     name = proposal.get_random_name()
     photo_path = f'{dir_path}{name}.jpg'
-    save_path = f'"../{dir_path}{name}.jpg"'
+    save_path = f'"./{dir_path}{name}.jpg"'
     File_obj.download(custom_path=photo_path)
     proposal.store_content(save_path)
 
@@ -363,11 +362,8 @@ def main():
      )
 
     dispatcher.add_handler(conv_handler)
-    PORT = os.environ.get('PORT', 5000)
-    updater.start_webhook(listen=IP,
-                          port=PORT,
-                          url_path=TOKEN)
-    updater.bot.setWebhook(URL + TOKEN)
+
+    updater.start_polling()
     updater.idle()
 
 
