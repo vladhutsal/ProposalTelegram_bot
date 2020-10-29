@@ -32,6 +32,7 @@ class Proposal:
         self.current_template = None
         self.current_dict = None
         self.current_title_id = None
+        self.current_doc_name = None
 
         self.edit_all = True
         self.add_rate = False
@@ -51,7 +52,7 @@ class Proposal:
 
     def get_next_title_id(self):
         try:
-            return next(self.dict_id_iterator)
+            self.current_title_id = next(self.dict_id_iterator)
         except StopIteration as end:
             raise end
 
@@ -62,8 +63,9 @@ class Proposal:
     def get_title_content(self, title_id):
         return self.current_dict[title_id][1]
 
+    # generate name for proposal like date and company
     def get_random_name(self):
-        tmp_files_list = os.listdir('engineers_photo/')
+        tmp_files_list = os.listdir('media/')
         rand_nm = random.randint(12, 999999)
         exists = [fn for fn in tmp_files_list if str(rand_nm) in fn]
         if exists:
