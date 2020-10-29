@@ -1,0 +1,2 @@
+1.  After first creating of proposal, and reseting it with /start command, on Choose engineers stage there are no engineers from DB.
+    After restarting all works good.
