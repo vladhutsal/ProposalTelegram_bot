@@ -15,7 +15,7 @@
       </div>
 
 		<h1 class="font-weight large">UTOR Proposal</h1>
-             <p>{{ info_dict['CD'] }} <strong>{{ info_dict['PB'] }}</strong></p>
+             <p>Creation date: {{ info_dict['CD'][1] }} <strong>Prepared by: {{ info_dict['PB'][1] }}</strong></p>
 
 <!-- iterating through content_dict -->
             {% set title_white = content_dict['MCG'][0][0] %}
