@@ -6,12 +6,7 @@ from . templates import (
 )
 
 
-def create_lorem_dict(db_handler, proposal):
-    db_handler.table = 'test'
-    db_handler.create_table(name='test')
-
-    db_handler.engineers_in_proposal_id = [1, 2]
-
+def create_lorem_dict(proposal):
     puppet = {
         'N': ['Name', 'Puppet Vasya'],
         'P': ['Position', 'QA engineer'],
@@ -27,22 +22,26 @@ def create_lorem_dict(db_handler, proposal):
         'EM': ['Email', 'petya.puppet@u-tor.com'],
         'PHT': ['Photo', 'engineers_photo/222.jpg']
     }
-    puppet_engineers = [puppet, puppet2]
-    for engineer in puppet_engineers:
-        db_handler.store_new_engineer_to_db(engineer)
 
+    puppet_engineers = [puppet, puppet2]
+
+    # generating lorem text for content dict
     for title_id in content_template.keys():
         if '_list' in title_id:
             for x in range(randint(1, 4)):
                 content_template[title_id][1] += f'{lorem.sentence()}\n'
         else:
             content_template[title_id][1] = lorem.sentence()
-    print(content_template)
 
+    # generating lorem text for info dict
     for title_id in info_template.keys():
         info_template[title_id][1] = lorem.words(randint(2, 5))
 
-    db_handler.table = 'engineers'
+    content_template['EHPW_line'][1] = '40 hrs/week'
+    info_template['DL'][1] = '30.10.2020'
+    info_template['CD'][1] = '27.10.2020'
+    info_template['PB'][1] = 'Alex'
+
     return {
         'content_dict': proposal.get_colored_titles(content_template),
         'info_dict': info_template,
