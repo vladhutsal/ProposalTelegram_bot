@@ -4,6 +4,7 @@ import os
 import telegram
 import logging
 import tempfile
+from telegram_bot.credentials import TOKEN, URL, IP
 
 from telegram_bot.Proposal import Proposal
 from telegram_bot.ProposalDBHandler import ProposalDBHandler
@@ -22,7 +23,6 @@ from telegram.ext import (
     ConversationHandler,
     CallbackQueryHandler)
 
-TOKEN = '1259603530:AAHRWl9xHFeoLncdt1jhXLC2ddFLh0YMHBg'
 
 logging.getLogger('apscheduler.scheduler').propagate = False
 db_handler = ProposalDBHandler()
@@ -364,10 +364,10 @@ def main():
 
     dispatcher.add_handler(conv_handler)
     PORT = os.environ.get('PORT', 5000)
-    updater.start_webhook(listen='0.0.0.0',
+    updater.start_webhook(listen=IP,
                           port=PORT,
                           url_path=TOKEN)
-    updater.bot.setWebhook('https://telegram-proposal-bot.herokuapp.com/' + TOKEN)
+    updater.bot.setWebhook(URL + TOKEN)
     updater.idle()
 
 
