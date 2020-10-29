@@ -28,15 +28,16 @@ class ProposalDBHandler:
         def checker(self, *args, **kwargs):
             self.conn = self.create_connection()
             self.cur = self.conn.cursor()
-            if not self.conn.execute(f'select * from {self.table}'):
-                self.create_table(self)
+            self.cur.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{self.table}'")
+            if self.cur.fetchone()[0] <= 0:
+                self.create_table()
             res = func(self, *args, **kwargs)
             self.conn.close()
             return res
         return checker
 
-    def create_table(self, name='engineers'):
-        table = f""" CREATE TABLE IF NOT EXISTS {name} (
+    def create_table(self):
+        table = f""" CREATE TABLE IF NOT EXISTS {self.table} (
                     id integer PRIMARY KEY,
                     N text NOT NULL UNIQUE,
                     P text NOT NULL,
@@ -48,7 +49,7 @@ class ProposalDBHandler:
                 self.conn.execute(table)
                 return True
             except Error as err:
-                print(f'Unable to create {name} table', err)
+                print(f'Unable to create {self.table} table', err)
         else:
             print('Not connected')
         return False
