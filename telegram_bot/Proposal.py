@@ -84,7 +84,7 @@ class Proposal:
     # let it loop
     def collect_user_data_for_html(self):
         if self.test:
-            data = create_lorem_dict(self.db_handler, self)
+            data = create_lorem_dict(self)
         else:
             data = {
                 'content_dict': self.get_colored_titles(self.content_dict),
