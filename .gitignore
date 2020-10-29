@@ -8,6 +8,7 @@ __pycache__/
 *.html
 !index.html
 credentials.py
+deprecated/
 
 # C extensions
 *.so
