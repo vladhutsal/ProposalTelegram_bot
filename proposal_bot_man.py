@@ -33,12 +33,14 @@ proposal = Proposal(db_handler)
 # States for ConversationHandler:
 STORE_DATA, SELECT_ACTION, STORE_DOCX, STORE_PHOTO = map(chr, range(4))
 # Templates constatns:
-CREATE_PROPOSAL, ADD_INFO, ADD_NEW_ENGINEER, ADD_ENGINEERS_RATE,  = map(chr, range(5, 9))
+ADD_DOCX, ADD_INFO, ADD_NEW_ENGINEER, ADD_ENGINEERS_RATE,  = map(chr, range(5, 9))
 # States of the proposal fill process, to show in what state bot is right now:
-CHOOSE_TITLE_TO_EDIT, EDIT_TITLE, CHOOSE_ENGINEER, OVERVIEW, INIT_TEMP, CREATE_PDF, TEST = map(chr, range(10, 17))
+EDIT_TITLE, CHOOSE_ENGINEER, OVERVIEW, INIT_TEMP, CREATE_PDF, TEST = map(chr, range(10, 16))
+
+SHOW_BUTTONS, CHOOSE_TITLE_TO_EDIT = map(chr, range(17, 19))
 
 templates = {
-    CREATE_PROPOSAL:    proposal.content_dict,
+    ADD_DOCX:           proposal.content_dict,
     ADD_INFO:           proposal.info_dict,
     ADD_NEW_ENGINEER:   proposal.engineer_dict,
     ADD_ENGINEERS_RATE: db_handler.engineers_rates
@@ -52,7 +54,7 @@ def start(update, context):
 
     buttons = [[
         InlineKeyboardButton(text='Create new proposal',
-                             callback_data=f'{CREATE_PROPOSAL}, {INIT_TEMP}'),
+                             callback_data=f'{ADD_DOCX}, {INIT_TEMP}'),
         InlineKeyboardButton(text='Test',
                              callback_data=str(TEST))
     ]]
@@ -69,11 +71,15 @@ def initialize_template(update, context):
     query = update.callback_query
 
     template = detach_id_from_callback(query.data)
-    proposal.current_template = template
+    proposal.current_template = str(template)
     proposal.current_dict = templates[template]
     proposal.reset_iter()
 
-    return ask_for_docx(update, context)
+    if template == ADD_DOCX:
+        return ask_for_docx(update, context)
+    
+    query.answer()
+    return next_title(update, context)
 
 
 def ask_for_docx(update, context):
@@ -93,16 +99,12 @@ def store_docx(update, context):
     Docx_obj = context.bot.get_file(file_id=file_id)
     Docx_obj.download(custom_path=docx_path)
     proposal.content_dict = docx_parser(proposal)
-    show_buttons(update, context,
-                 btn1=['Choose engineer', f'{CHOOSE_ENGINEER}, {INIT_TEMP}'],
-                 btn2=['Add info', f'{ADD_INFO}, {INIT_TEMP}'])
 
-    return SELECT_ACTION
+    return show_buttons(update, context)
 
 
 def docx_parser(proposal):
     doc = Document(proposal.current_doc_name)
-    # doc.save('media/695614.docx')
 
     for content in doc.paragraphs:
         if content.style.name == 'Heading 2':
@@ -116,22 +118,51 @@ def docx_parser(proposal):
             proposal.store_content(content.text)
 
 
-def show_buttons(update, context, **kwargs):
+def show_buttons(update, context):
+    template = proposal.current_template
     buttons = []
-    for arg, val in kwargs.items():
-        add_button(buttons, text=val[0], callback=val[1])
+    # If previous state was adding docx to the Proposal, current template going to be content_dict.
+    # ADD_DOCX - assigned value to this dict in telmplates dictionary (line 42).
+    # Buttons for next steps sholud be ADD_INFO, because we dont have any titles to edit.
 
-    keyboard = InlineKeyboardMarkup.from_row(buttons)
-    context.bot.send_message(chat_id=context.user_data['chat_id'],
-                             text='What`s next?',
-                             reply_markup=keyboard)
+    # If previous state was adding info to the proposal, next steps should be
+    # choose engineer or edit info_template data.
+    if template == ADD_DOCX:
+        btn1 = add_button('Add info', f'{ADD_INFO}, {INIT_TEMP}')
+        buttons = append_btns(buttons, btn1)
+
+    if template == ADD_INFO:
+        btn1 = add_button('Edit', CHOOSE_TITLE_TO_EDIT)
+        btn2 = add_button('Choose engineer', CHOOSE_ENGINEER)
+        buttons = append_btns(buttons, btn1, btn2)
+
+    text = '<b>What`s next?</b>'
+    if getattr(update, 'callback_query'):
+        update.callback_query.answer()
+        keyboard = InlineKeyboardMarkup.from_row(buttons)
+        update.callback_query.edit_message_text(text=text,
+                                                reply_markup=keyboard,
+                                                parse_mode=telegram.ParseMode.HTML)
+        print('show buttons - QUERY')
+    else:
+        keyboard = InlineKeyboardMarkup.from_row(buttons)
+        context.bot.send_message(chat_id=context.user_data['chat_id'],
+                                 text=text,
+                                 reply_markup=keyboard,
+                                 parse_mode=telegram.ParseMode.HTML)
+        print('show buttons - UPDATE')
+    return SELECT_ACTION
 
 
-def add_button(buttons, text=None, callback=None):
-    btn = InlineKeyboardButton(text=text,
-                               callback_data=callback)
-    buttons.append(btn)
+def append_btns(buttons, *args):
+    for btn in args:
+        buttons.append(btn)
     return buttons
+
+
+def add_button(text=None, callback=None):
+    btn = InlineKeyboardButton(text=text, callback_data=callback)
+    return btn
 
 
 # ================ FILL TEMPLATES WITH DATA
@@ -148,7 +179,7 @@ def next_title(update, context):
             if err:
                 show_error_message(update, context)
 
-        return overview(update, context)
+        return show_buttons(update, context)
 
 
 def show_title(update, context):
@@ -161,6 +192,19 @@ def show_title(update, context):
         return STORE_PHOTO
 
     return STORE_DATA
+
+
+def edit_title(update, context):
+    query = update.callback_query
+    proposal.current_title_id = detach_id_from_callback(query.data)
+    proposal.edit_all = False
+    query.answer()
+
+    if ADD_ENGINEERS_RATE in query.data:
+        add_engineer_to_proposal()
+        proposal.current_dict = db_handler.engineers_rates
+
+    return show_title(update, context)
 
 
 def store_photo(update, context):
@@ -196,63 +240,40 @@ def store_data(update, context):
 
 # ================ EDIT AND OVERVIEW
 # there will be two buttons - "Edit" and "Add info"/"Choose engineers"
-# def overview(update, context):
-#     context.bot.send_message(chat_id=context.user_data['chat_id'],
-#                              text='Info you`ve provided:')
-#     for title_id in proposal.current_dict.keys():
-#         title = proposal.get_bold_title(title_id)
-#         content = proposal.get_title_content(title_id)
-#         context.bot.send_message(chat_id=context.user_data['chat_id'],
-#                                  text=f'{title}\n{content}',
-#                                  parse_mode=telegram.ParseMode.HTML)
+def overview(update, context):
+    context.bot.send_message(chat_id=context.user_data['chat_id'],
+                             text='<b>Info you`ve provided:</b>',
+                             parse_mode=telegram.ParseMode.HTML)
+    for title_id in proposal.current_dict.keys():
+        title = proposal.get_bold_title(title_id)
+        content = proposal.get_title_content(title_id)
+        context.bot.send_message(chat_id=context.user_data['chat_id'],
+                                 text=f'{title}\n{content}',
+                                 parse_mode=telegram.ParseMode.HTML)
 
-#     if proposal.current_template == CREATE_PROPOSAL:
-#         text = 'Add info'
-#         callback_data = f'{ADD_INFO}, {INIT_TEMP}'
-#     else:
-#         text = 'Choose engineers'
-#         callback_data = CHOOSE_ENGINEER
-
-#     buttons = [InlineKeyboardButton(text=text, callback_data=callback_data),
-#                InlineKeyboardButton(text='Edit', callback_data=str(CHOOSE_TITLE_TO_EDIT))]
-
-#     keyboard = InlineKeyboardMarkup.from_row(buttons)
-#     context.bot.send_message(chat_id=context.user_data['chat_id'],
-#                              text='All good',
-#                              reply_markup=keyboard)
-#     return SELECT_ACTION
+    return show_buttons(update, context)
 
 
-# def choose_title_to_edit(update, context):
-#     query = update.callback_query
-#     current_dict = proposal.current_dict
+def choose_title_to_edit(update, context):
+    query = update.callback_query
+    current_dict = proposal.current_dict
 
-#     buttons = []
-#     for title_id in proposal.current_dict.keys():
-#         btn = [InlineKeyboardButton(text=f'{current_dict[title_id][0]}',
-#                                     callback_data=f'{title_id}, {EDIT_TITLE}')]
-#         buttons.append(btn)
+    buttons = []
+    for title_id in proposal.current_dict.keys():
+        text = f'{current_dict[title_id][0]}'
+        callback_data = f'{title_id}, {EDIT_TITLE}'
+        btn = [add_button(text, callback_data)]
+        append_btns(buttons, btn)
 
-#     buttons = add_button('<< Go back', OVERVIEW, buttons)
+    append_btns(buttons, [add_button('<< Go back', SHOW_BUTTONS)])
 
-#     keyboard = InlineKeyboardMarkup(buttons)
-#     query.edit_message_text(text='Choose a title you want to edit:',
-#                             reply_markup=keyboard)
-#     query.answer()
+    context.user_data['update_id'] = query.id
+    query.answer()
+    keyboard = InlineKeyboardMarkup(buttons)
+    query.edit_message_text(text='Choose a title you want to edit:',
+                            reply_markup=keyboard)
 
-#     return SELECT_ACTION
-
-
-# def edit_title(update, context):
-#     query = update.callback_query
-#     proposal.current_title_id = detach_id_from_callback(query.data)
-
-#     if ADD_ENGINEERS_RATE in query.data:
-#         add_engineer_to_proposal()
-#         proposal.current_dict = db_handler.engineers_rates
-#     proposal.edit_all = False
-
-#     return show_title(update, context)
+    return SELECT_ACTION
 
 
 # ================ ENGINEERS
@@ -265,22 +286,21 @@ def choose_engineers(update, context):
         for engineer_id in engineers:
             engineer_name = db_handler.get_field_info(engineer_id, 'N')
             if engineer_id not in db_handler.engineers_in_proposal_id:
-                buttons = add_button(engineer_name,
-                                     f'{engineer_id}, {ADD_ENGINEERS_RATE}, {EDIT_TITLE}',
-                                     buttons)
+                callback_data = f'{engineer_id}, {ADD_ENGINEERS_RATE}, {EDIT_TITLE}'
+                btn = [add_button(engineer_name, callback_data)]
+                buttons.append(btn)
 
-    help_btns = [
-        InlineKeyboardButton(text='Add new engineer',
-                             callback_data=f'{ADD_NEW_ENGINEER}, {INIT_TEMP}'),
-        InlineKeyboardButton(text='Continue',
-                             callback_data=CREATE_PDF)
-    ]
+    help_btns = [add_button('Add new engineer', f'{ADD_NEW_ENGINEER}, {INIT_TEMP}'),
+                 add_button('Continue', CREATE_PDF)]
     buttons.append(help_btns)
 
     keyboard = InlineKeyboardMarkup(buttons)
-    context.bot.send_message(chat_id=context.user_data['chat_id'],
-                             text='Choose engineers: ',
-                             reply_markup=keyboard)
+    query.edit_message_text(text='Choose engineers: ',
+                            reply_markup=keyboard)
+
+    # context.bot.send_message(chat_id=context.user_data['chat_id'],
+    #                          text='Choose engineers: ',
+    #                          reply_markup=keyboard)
     if query:
         query.answer()
 
@@ -382,29 +402,31 @@ def main():
                             pattern=f'.+{INIT_TEMP}$'),
 
                             CallbackQueryHandler(ask_for_docx,
-                            pattern=CREATE_PROPOSAL),
+                            pattern=ADD_DOCX),
 
+                            CallbackQueryHandler(show_buttons,
+                            pattern=SHOW_BUTTONS),
 
                             CallbackQueryHandler(choose_engineers,
                             pattern='^' + str(CHOOSE_ENGINEER) + '$'),
 
 
-                            # CallbackQueryHandler(edit_title,
-                            # pattern=f'.+{EDIT_TITLE}$'),
+                            CallbackQueryHandler(edit_title,
+                            pattern=f'.+{EDIT_TITLE}$'),
 
                             CallbackQueryHandler(get_test_pdf_dict,
                             pattern=TEST),
 
                             CallbackQueryHandler(generate_html,
-                            pattern='^' + str(CREATE_PDF) + '$')],
+                            pattern='^' + str(CREATE_PDF) + '$'),
 
-                            # CallbackQueryHandler(choose_title_to_edit,
-                            # pattern='^' + str(CHOOSE_TITLE_TO_EDIT) + '$'),
+                            CallbackQueryHandler(choose_title_to_edit,
+                            pattern=CHOOSE_TITLE_TO_EDIT),
 
-                            # CallbackQueryHandler(overview,
-                            # pattern='^' + str(OVERVIEW) + '$')],
+                            CallbackQueryHandler(overview,
+                            pattern='^' + str(OVERVIEW) + '$')],
 
-            # STORE_DATA: [MessageHandler(Filters.text, store_data)],
+            STORE_DATA: [MessageHandler(Filters.text, store_data)],
 
             STORE_PHOTO: [MessageHandler(Filters.photo, store_photo)],
 
