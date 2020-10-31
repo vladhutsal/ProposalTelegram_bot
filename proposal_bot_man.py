@@ -37,7 +37,7 @@ ADD_DOCX, ADD_INFO, ADD_NEW_ENGINEER, ADD_ENGINEERS_RATE,  = map(chr, range(5, 9
 # States of the proposal fill process, to show in what state bot is right now:
 EDIT_TITLE, CHOOSE_ENGINEER, OVERVIEW, INIT_TEMP, CREATE_PDF, TEST = map(chr, range(10, 16))
 
-SHOW_BUTTONS, CHOOSE_TITLE_TO_EDIT = map(chr, range(17, 19))
+SHOW_BUTTONS, CHOOSE_TITLE_TO_EDIT, ADD_ENGINEER_TO_PROPOSAL = map(chr, range(17, 20))
 
 templates = {
     ADD_DOCX:           proposal.content_dict,
@@ -54,7 +54,7 @@ def start(update, context):
 
     buttons = [[
         InlineKeyboardButton(text='Create new proposal',
-                             callback_data=f'{ADD_DOCX}, {INIT_TEMP}'),
+                             callback_data=ADD_DOCX),
         InlineKeyboardButton(text='Test',
                              callback_data=str(TEST))
     ]]
@@ -67,18 +67,31 @@ def start(update, context):
     return SELECT_ACTION
 
 
-def initialize_template(update, context):
-    query = update.callback_query
-
-    template = detach_id_from_callback(query.data)
-    proposal.current_template = str(template)
-    proposal.current_dict = templates[template]
+def init_add_info(update, context):
+    proposal.current_dict = templates[ADD_INFO]
     proposal.reset_iter()
 
-    if template == ADD_DOCX:
-        return ask_for_docx(update, context)
-    
-    query.answer()
+    return next_title(update, context)
+
+
+def init_add_docx(update, context):
+    proposal.current_dict = templates[ADD_DOCX]
+    proposal.reset_iter()
+
+    return ask_for_docx(update, context)
+
+
+def init_add_engineers_rate(update, context):
+    proposal.current_dict = templates[ADD_ENGINEERS_RATE]
+    proposal.reset_iter()
+
+    return next_title(update, context)
+
+
+def init_add_new_engineer(update, context):
+    proposal.current_dict = templates[ADD_NEW_ENGINEER]
+    proposal.reset_iter()
+
     return next_title(update, context)
 
 
@@ -100,7 +113,7 @@ def store_docx(update, context):
     Docx_obj.download(custom_path=docx_path)
     proposal.content_dict = docx_parser(proposal)
 
-    return show_buttons(update, context)
+    return init_add_info(update, context)
 
 
 def docx_parser(proposal):
@@ -116,25 +129,14 @@ def docx_parser(proposal):
             pass
         else:
             proposal.store_content(content.text)
+    return proposal.current_dict
 
 
 def show_buttons(update, context):
-    template = proposal.current_template
     buttons = []
-    # If previous state was adding docx to the Proposal, current template going to be content_dict.
-    # ADD_DOCX - assigned value to this dict in telmplates dictionary (line 42).
-    # Buttons for next steps sholud be ADD_INFO, because we dont have any titles to edit.
-
-    # If previous state was adding info to the proposal, next steps should be
-    # choose engineer or edit info_template data.
-    if template == ADD_DOCX:
-        btn1 = add_button('Add info', f'{ADD_INFO}, {INIT_TEMP}')
-        buttons = append_btns(buttons, btn1)
-
-    if template == ADD_INFO:
-        btn1 = add_button('Edit', CHOOSE_TITLE_TO_EDIT)
-        btn2 = add_button('Choose engineer', CHOOSE_ENGINEER)
-        buttons = append_btns(buttons, btn1, btn2)
+    btn1 = add_button('Edit info', CHOOSE_TITLE_TO_EDIT)
+    btn2 = add_button('Choose engineer', CHOOSE_ENGINEER)
+    buttons = append_btns(buttons, btn1, btn2)
 
     text = '<b>What`s next?</b>'
     if getattr(update, 'callback_query'):
@@ -234,7 +236,6 @@ def store_data(update, context):
         if proposal.add_rate:
             proposal.add_rate = False
             return choose_engineers(update, context)
-
         return overview(update, context)
 
 
@@ -286,37 +287,40 @@ def choose_engineers(update, context):
         for engineer_id in engineers:
             engineer_name = db_handler.get_field_info(engineer_id, 'N')
             if engineer_id not in db_handler.engineers_in_proposal_id:
-                callback_data = f'{engineer_id}, {ADD_ENGINEERS_RATE}, {EDIT_TITLE}'
+                callback_data = f'{engineer_id}, {ADD_ENGINEER_TO_PROPOSAL}'
                 btn = [add_button(engineer_name, callback_data)]
                 buttons.append(btn)
 
-    help_btns = [add_button('Add new engineer', f'{ADD_NEW_ENGINEER}, {INIT_TEMP}'),
+    help_btns = [add_button('Add new engineer', ADD_NEW_ENGINEER),
                  add_button('Continue', CREATE_PDF)]
     buttons.append(help_btns)
 
     keyboard = InlineKeyboardMarkup(buttons)
-    query.edit_message_text(text='Choose engineers: ',
-                            reply_markup=keyboard)
-
-    # context.bot.send_message(chat_id=context.user_data['chat_id'],
-    #                          text='Choose engineers: ',
-    #                          reply_markup=keyboard)
+    text = 'Choose engineers: '
     if query:
+        query.edit_message_text(text=text,
+                                reply_markup=keyboard)
         query.answer()
+    else:
+        context.bot.send_message(chat_id=context.user_data['chat_id'],
+                                 text=text,
+                                 reply_markup=keyboard)
 
     return SELECT_ACTION
 
 
-def add_engineer_to_proposal():
+def add_engineer_to_proposal(update, context):
     # add engineers id to list of engineers in current proposal:
-    engineer_id = proposal.current_title_id
+    query = update.callback_query
+    engineer_id = detach_id_from_callback(query.data)
     curr_list = db_handler.engineers_in_proposal_id
     curr_list.append(int(engineer_id))
 
     # add engineers id to dictionary as key {'engn_id': ['name', 'rate']}
     engineer_name = db_handler.get_field_info(engineer_id, 'N')
     db_handler.engineers_rates[engineer_id] = [f'Current rate for {engineer_name}', '']
-    proposal.add_rate = True
+
+    return choose_engineers(update, context)
 
 
 # ================ HELPERS
@@ -342,6 +346,7 @@ def generate_tmp_files(*args):
 # ================ HTML TO PDF
 # how to call all next functions without update and context args?
 def generate_html(update, contex):
+    print('FINAL CONTENT DICT', proposal.content_dict)
     collected_data = proposal.collect_user_data_for_html()
 
     env = Environment(loader=FileSystemLoader('static/'))
@@ -372,10 +377,10 @@ def generate_pdf(update, context):
 
 
 def send_pdf(context, update):
-    c_id = context.user_data['chat_id']
+    chat_id = context.user_data['chat_id']
 
     with open(proposal.pdf.name, 'rb') as pdf:
-        context.bot.send_document(chat_id=c_id, document=pdf)
+        context.bot.send_document(chat_id=chat_id, document=pdf)
 
     return ConversationHandler.END
 
@@ -398,10 +403,7 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            SELECT_ACTION: [CallbackQueryHandler(initialize_template,
-                            pattern=f'.+{INIT_TEMP}$'),
-
-                            CallbackQueryHandler(ask_for_docx,
+            SELECT_ACTION: [CallbackQueryHandler(init_add_docx,
                             pattern=ADD_DOCX),
 
                             CallbackQueryHandler(show_buttons,
@@ -410,6 +412,11 @@ def main():
                             CallbackQueryHandler(choose_engineers,
                             pattern='^' + str(CHOOSE_ENGINEER) + '$'),
 
+                            CallbackQueryHandler(init_add_new_engineer,
+                            pattern=ADD_NEW_ENGINEER),
+
+                            CallbackQueryHandler(add_engineer_to_proposal,
+                            pattern=f'.+{ADD_ENGINEER_TO_PROPOSAL}$'),
 
                             CallbackQueryHandler(edit_title,
                             pattern=f'.+{EDIT_TITLE}$'),
