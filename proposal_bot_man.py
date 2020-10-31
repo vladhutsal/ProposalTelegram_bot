@@ -134,8 +134,15 @@ def docx_parser(proposal):
 
 def show_buttons(update, context):
     buttons = []
+    if proposal.finish:
+        text = 'Create PFD'
+        callback_data = CREATE_PDF
+    else: 
+        text = 'Choose engineer'
+        callback_data = CHOOSE_ENGINEER
+
     btn1 = add_button('Edit info', CHOOSE_TITLE_TO_EDIT)
-    btn2 = add_button('Choose engineer', CHOOSE_ENGINEER)
+    btn2 = add_button(text, callback_data)
     buttons = append_btns(buttons, btn1, btn2)
 
     text = '<b>What`s next?</b>'
@@ -233,9 +240,7 @@ def store_data(update, context):
 
     elif not proposal.edit_all:
         proposal.edit_all = True
-        if proposal.add_rate:
-            proposal.add_rate = False
-            return choose_engineers(update, context)
+
         return overview(update, context)
 
 
@@ -292,15 +297,16 @@ def choose_engineers(update, context):
                 buttons.append(btn)
 
     help_btns = [add_button('Add new engineer', ADD_NEW_ENGINEER),
-                 add_button('Continue', CREATE_PDF)]
+                 add_button('Continue', ADD_ENGINEERS_RATE)]
     buttons.append(help_btns)
 
-    keyboard = InlineKeyboardMarkup(buttons)
     text = 'Choose engineers: '
+    keyboard = InlineKeyboardMarkup(buttons)
+
     if query:
+        query.answer('Engineer added')
         query.edit_message_text(text=text,
                                 reply_markup=keyboard)
-        query.answer()
     else:
         context.bot.send_message(chat_id=context.user_data['chat_id'],
                                  text=text,
@@ -319,6 +325,7 @@ def add_engineer_to_proposal(update, context):
     # add engineers id to dictionary as key {'engn_id': ['name', 'rate']}
     engineer_name = db_handler.get_field_info(engineer_id, 'N')
     db_handler.engineers_rates[engineer_id] = [f'Current rate for {engineer_name}', '']
+    proposal.finish = True
 
     return choose_engineers(update, context)
 
@@ -346,7 +353,6 @@ def generate_tmp_files(*args):
 # ================ HTML TO PDF
 # how to call all next functions without update and context args?
 def generate_html(update, contex):
-    print('FINAL CONTENT DICT', proposal.content_dict)
     collected_data = proposal.collect_user_data_for_html()
 
     env = Environment(loader=FileSystemLoader('static/'))
@@ -417,6 +423,9 @@ def main():
 
                             CallbackQueryHandler(add_engineer_to_proposal,
                             pattern=f'.+{ADD_ENGINEER_TO_PROPOSAL}$'),
+
+                            CallbackQueryHandler(init_add_engineers_rate,
+                            pattern=ADD_ENGINEERS_RATE),
 
                             CallbackQueryHandler(edit_title,
                             pattern=f'.+{EDIT_TITLE}$'),
