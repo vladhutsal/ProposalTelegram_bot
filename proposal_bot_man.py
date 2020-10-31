@@ -25,29 +25,31 @@ from telegram.ext import (
 
 
 logging.getLogger('apscheduler.scheduler').propagate = False
-db_handler = ProposalDBHandler()
-proposal = Proposal(db_handler)
 
-# set pattern constatnts
-
-# States for ConversationHandler:
+# add description:
 STORE_DATA, SELECT_ACTION, STORE_DOCX, STORE_PHOTO = map(chr, range(4))
-# Templates constatns:
+
 ADD_DOCX, ADD_INFO, ADD_NEW_ENGINEER, ADD_ENGINEERS_RATE,  = map(chr, range(5, 9))
-# States of the proposal fill process, to show in what state bot is right now:
-EDIT_TITLE, CHOOSE_ENGINEER, OVERVIEW, INIT_TEMP, CREATE_PDF, TEST = map(chr, range(10, 16))
 
-SHOW_BUTTONS, CHOOSE_TITLE_TO_EDIT, ADD_ENGINEER_TO_PROPOSAL = map(chr, range(17, 20))
+EDIT_TITLE, CHOOSE_ENGINEER, CREATE_PDF, TEST = map(chr, range(10, 14))
 
-templates = {
-    ADD_DOCX:           proposal.content_dict,
-    ADD_INFO:           proposal.info_dict,
-    ADD_NEW_ENGINEER:   proposal.engineer_dict,
-    ADD_ENGINEERS_RATE: db_handler.engineers_rates
-}
+SHOW_BUTTONS, CHOOSE_TITLE_TO_EDIT, ADD_ENGINEER_TO_PROPOSAL = map(chr, range(15, 18))
 
 
 def start(update, context):
+    db_handler = ProposalDBHandler()
+    proposal = Proposal(db_handler)
+
+    context.user_data['db_handler'] = db_handler
+    context.user_data['proposal'] = proposal
+
+    context.user_data['templates'] = {
+        ADD_DOCX:           proposal.content_dict,
+        ADD_INFO:           proposal.info_dict,
+        ADD_NEW_ENGINEER:   proposal.engineer_dict,
+        ADD_ENGINEERS_RATE: db_handler.engineers_rates
+    }
+
     # reset content dict when restarting proposal
     context.user_data['chat_id'] = update.message.chat_id
     context.user_data['test'] = False
@@ -67,7 +69,41 @@ def start(update, context):
     return SELECT_ACTION
 
 
+def show_buttons(update, context):
+    proposal = context.user_data['proposal']
+
+    buttons = []
+    if proposal.finish:
+        text = 'Create PFD'
+        callback_data = CREATE_PDF
+    else:
+        text = 'Choose engineer'
+        callback_data = CHOOSE_ENGINEER
+
+    btn1 = add_button('Edit info', CHOOSE_TITLE_TO_EDIT)
+    btn2 = add_button(text, callback_data)
+    buttons = append_btns(buttons, btn1, btn2)
+
+    text = '<b>What`s next?</b>'
+    if getattr(update, 'callback_query'):
+        update.callback_query.answer()
+        keyboard = InlineKeyboardMarkup.from_row(buttons)
+        update.callback_query.edit_message_text(text=text,
+                                                reply_markup=keyboard,
+                                                parse_mode=telegram.ParseMode.HTML)
+    else:
+        keyboard = InlineKeyboardMarkup.from_row(buttons)
+        context.bot.send_message(chat_id=context.user_data['chat_id'],
+                                 text=text,
+                                 reply_markup=keyboard,
+                                 parse_mode=telegram.ParseMode.HTML)
+    return SELECT_ACTION
+
+
 def init_add_info(update, context):
+    templates = context.user_data['templates']
+    proposal = context.user_data['proposal']
+
     proposal.current_dict = templates[ADD_INFO]
     proposal.reset_iter()
 
@@ -75,6 +111,9 @@ def init_add_info(update, context):
 
 
 def init_add_docx(update, context):
+    templates = context.user_data['templates']
+    proposal = context.user_data['proposal']
+
     proposal.current_dict = templates[ADD_DOCX]
     proposal.reset_iter()
 
@@ -82,6 +121,9 @@ def init_add_docx(update, context):
 
 
 def init_add_engineers_rate(update, context):
+    templates = context.user_data['templates']
+    proposal = context.user_data['proposal']
+
     proposal.current_dict = templates[ADD_ENGINEERS_RATE]
     proposal.reset_iter()
 
@@ -89,6 +131,10 @@ def init_add_engineers_rate(update, context):
 
 
 def init_add_new_engineer(update, context):
+    templates = context.user_data['templates']
+    proposal = context.user_data['proposal']
+
+    update.callback_query.answer()
     proposal.current_dict = templates[ADD_NEW_ENGINEER]
     proposal.reset_iter()
 
@@ -104,6 +150,8 @@ def ask_for_docx(update, context):
 
 
 def store_docx(update, context):
+    proposal = context.user_data['proposal']
+
     file_id = update.message.document.file_id
     name = proposal.get_random_name()
     docx_path = f'media/{name}.docx'
@@ -132,66 +180,21 @@ def docx_parser(proposal):
     return proposal.current_dict
 
 
-def show_buttons(update, context):
-    buttons = []
-    if proposal.finish:
-        text = 'Create PFD'
-        callback_data = CREATE_PDF
-    else: 
-        text = 'Choose engineer'
-        callback_data = CHOOSE_ENGINEER
-
-    btn1 = add_button('Edit info', CHOOSE_TITLE_TO_EDIT)
-    btn2 = add_button(text, callback_data)
-    buttons = append_btns(buttons, btn1, btn2)
-
-    text = '<b>What`s next?</b>'
-    if getattr(update, 'callback_query'):
-        update.callback_query.answer()
-        keyboard = InlineKeyboardMarkup.from_row(buttons)
-        update.callback_query.edit_message_text(text=text,
-                                                reply_markup=keyboard,
-                                                parse_mode=telegram.ParseMode.HTML)
-        print('show buttons - QUERY')
-    else:
-        keyboard = InlineKeyboardMarkup.from_row(buttons)
-        context.bot.send_message(chat_id=context.user_data['chat_id'],
-                                 text=text,
-                                 reply_markup=keyboard,
-                                 parse_mode=telegram.ParseMode.HTML)
-        print('show buttons - UPDATE')
-    return SELECT_ACTION
-
-
-def append_btns(buttons, *args):
-    for btn in args:
-        buttons.append(btn)
-    return buttons
-
-
-def add_button(text=None, callback=None):
-    btn = InlineKeyboardButton(text=text, callback_data=callback)
-    return btn
-
-
 # ================ FILL TEMPLATES WITH DATA
 def next_title(update, context):
+    proposal = context.user_data['proposal']
+
     try:
         proposal.get_next_title_id()
         return show_title(update, context)
+
     except StopIteration:
-        if proposal.current_template == ADD_NEW_ENGINEER:
-
-            # telegram_bot.py is no need to know about db_handler class
-            err = db_handler.store_new_engineer_to_db(proposal.current_dict)
-            proposal.reset_engineer_dict()
-            if err:
-                show_error_message(update, context)
-
         return show_buttons(update, context)
 
 
 def show_title(update, context):
+    proposal = context.user_data['proposal']
+
     title_id = proposal.current_title_id
     title_name = proposal.get_bold_title(title_id)
     context.bot.send_message(chat_id=context.user_data['chat_id'],
@@ -204,34 +207,43 @@ def show_title(update, context):
 
 
 def edit_title(update, context):
+    proposal = context.user_data['proposal']
+
     query = update.callback_query
     proposal.current_title_id = detach_id_from_callback(query.data)
     proposal.edit_all = False
     query.answer()
 
-    if ADD_ENGINEERS_RATE in query.data:
-        add_engineer_to_proposal()
-        proposal.current_dict = db_handler.engineers_rates
-
     return show_title(update, context)
 
 
 def store_photo(update, context):
+    proposal = context.user_data['proposal']
+    db_handler = context.user_data['db_handler']
+
     photo_info = update.message.photo[-1]
     file_id = photo_info.file_id
     File_obj = context.bot.get_file(file_id=file_id)
 
-    dir_path = 'engineers_photo/'
+    dir_path = 'media/engineers_photo/'
     name = proposal.get_random_name()
     photo_path = f'{dir_path}{name}.jpg'
     save_path = f'"./{dir_path}{name}.jpg"'
     File_obj.download(custom_path=photo_path)
     proposal.store_content(save_path)
 
-    return next_title(update, context)
+    # telegram_bot.py is no need to know about db_handler class
+    err = db_handler.store_new_engineer_to_db(proposal.current_dict)
+    proposal.reset_engineer_dict()
+    if err:
+        show_error_message(update, context)
+
+    return show_buttons(update, context)
 
 
 def store_data(update, context):
+    proposal = context.user_data['proposal']
+
     user_content = update.message.text
     proposal.store_content(user_content)
 
@@ -247,6 +259,8 @@ def store_data(update, context):
 # ================ EDIT AND OVERVIEW
 # there will be two buttons - "Edit" and "Add info"/"Choose engineers"
 def overview(update, context):
+    proposal = context.user_data['proposal']
+
     context.bot.send_message(chat_id=context.user_data['chat_id'],
                              text='<b>Info you`ve provided:</b>',
                              parse_mode=telegram.ParseMode.HTML)
@@ -261,6 +275,8 @@ def overview(update, context):
 
 
 def choose_title_to_edit(update, context):
+    proposal = context.user_data['proposal']
+
     query = update.callback_query
     current_dict = proposal.current_dict
 
@@ -284,27 +300,33 @@ def choose_title_to_edit(update, context):
 
 # ================ ENGINEERS
 def choose_engineers(update, context):
+    db_handler = context.user_data['db_handler']
+
     query = update.callback_query
     engineers = db_handler.get_engineers_id_list()
+    engn_in_proposal = db_handler.engineers_in_proposal_id
 
     buttons = []
     if engineers:
         for engineer_id in engineers:
             engineer_name = db_handler.get_field_info(engineer_id, 'N')
-            if engineer_id not in db_handler.engineers_in_proposal_id:
+            if engineer_id not in engn_in_proposal:
                 callback_data = f'{engineer_id}, {ADD_ENGINEER_TO_PROPOSAL}'
                 btn = [add_button(engineer_name, callback_data)]
                 buttons.append(btn)
-
+    if engn_in_proposal:
+        callback_data = ADD_ENGINEERS_RATE
+    else:
+        callback_data = CREATE_PDF
     help_btns = [add_button('Add new engineer', ADD_NEW_ENGINEER),
-                 add_button('Continue', ADD_ENGINEERS_RATE)]
+                 add_button('Continue', callback_data)]
     buttons.append(help_btns)
 
     text = 'Choose engineers: '
     keyboard = InlineKeyboardMarkup(buttons)
 
     if query:
-        query.answer('Engineer added')
+        query.answer()
         query.edit_message_text(text=text,
                                 reply_markup=keyboard)
     else:
@@ -316,6 +338,9 @@ def choose_engineers(update, context):
 
 
 def add_engineer_to_proposal(update, context):
+    db_handler = context.user_data['db_handler']
+    proposal = context.user_data['proposal']
+
     # add engineers id to list of engineers in current proposal:
     query = update.callback_query
     engineer_id = detach_id_from_callback(query.data)
@@ -326,11 +351,23 @@ def add_engineer_to_proposal(update, context):
     engineer_name = db_handler.get_field_info(engineer_id, 'N')
     db_handler.engineers_rates[engineer_id] = [f'Current rate for {engineer_name}', '']
     proposal.finish = True
+    query.answer('Engineer added')
 
     return choose_engineers(update, context)
 
 
 # ================ HELPERS
+def append_btns(buttons, *args):
+    for btn in args:
+        buttons.append(btn)
+    return buttons
+
+
+def add_button(text=None, callback=None):
+    btn = InlineKeyboardButton(text=text, callback_data=callback)
+    return btn
+
+
 def detach_id_from_callback(query_data):
     additional_query_data = query_data.split(',')[0]
     return additional_query_data
@@ -352,7 +389,9 @@ def generate_tmp_files(*args):
 
 # ================ HTML TO PDF
 # how to call all next functions without update and context args?
-def generate_html(update, contex):
+def generate_html(update, context):
+    proposal = context.user_data['proposal']
+
     collected_data = proposal.collect_user_data_for_html()
 
     env = Environment(loader=FileSystemLoader('static/'))
@@ -363,10 +402,12 @@ def generate_html(update, contex):
     with open(proposal.html.name, 'w+') as html:
         html.write(jinja_rendered_html)
 
-    return generate_pdf(update, contex)
+    return generate_pdf(update, context)
 
 
 def generate_pdf(update, context):
+    proposal = context.user_data['proposal']
+
     pdf_doc = HTML(proposal.html.name)
     pdf_doc_rndr = pdf_doc.render(stylesheets=['static/main.css'])
     page = pdf_doc_rndr.pages[0]
@@ -383,6 +424,8 @@ def generate_pdf(update, context):
 
 
 def send_pdf(context, update):
+    proposal = context.user_data['proposal']
+
     chat_id = context.user_data['chat_id']
 
     with open(proposal.pdf.name, 'rb') as pdf:
@@ -393,6 +436,8 @@ def send_pdf(context, update):
 
 # ================ GENERATE TEST PDF
 def get_test_pdf_dict(update, context):
+    proposal = context.user_data['proposal']
+
     proposal.test = True
     update.callback_query.answer()
 
@@ -415,6 +460,7 @@ def main():
                             CallbackQueryHandler(show_buttons,
                             pattern=SHOW_BUTTONS),
 
+
                             CallbackQueryHandler(choose_engineers,
                             pattern='^' + str(CHOOSE_ENGINEER) + '$'),
 
@@ -427,20 +473,20 @@ def main():
                             CallbackQueryHandler(init_add_engineers_rate,
                             pattern=ADD_ENGINEERS_RATE),
 
+
                             CallbackQueryHandler(edit_title,
                             pattern=f'.+{EDIT_TITLE}$'),
-
-                            CallbackQueryHandler(get_test_pdf_dict,
-                            pattern=TEST),
-
-                            CallbackQueryHandler(generate_html,
-                            pattern='^' + str(CREATE_PDF) + '$'),
 
                             CallbackQueryHandler(choose_title_to_edit,
                             pattern=CHOOSE_TITLE_TO_EDIT),
 
-                            CallbackQueryHandler(overview,
-                            pattern='^' + str(OVERVIEW) + '$')],
+
+                            CallbackQueryHandler(get_test_pdf_dict,
+                            pattern=TEST),
+
+
+                            CallbackQueryHandler(generate_html,
+                            pattern='^' + str(CREATE_PDF) + '$')],
 
             STORE_DATA: [MessageHandler(Filters.text, store_data)],
 
