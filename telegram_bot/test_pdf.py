@@ -23,6 +23,14 @@ def create_lorem_dict(proposal):
         'PHT': ['Photo', 'engineers_photo/222.jpg']
     }
 
+    puppet3 = {
+        'N': ['Name', 'Puppet Anton'],
+        'P': ['Position', 'Project manager'],
+        'RT': ['Rate', '12'],
+        'EM': ['Email', 'anton.puppet@u-tor.com'],
+        'PHT': ['Photo', 'engineers_photo/333.jpg']
+    }
+
     puppet_engineers = [puppet, puppet2]
 
     # generating lorem text for content dict

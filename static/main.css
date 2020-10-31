@@ -14,9 +14,13 @@ body {
 h1,
 h2,
 h3 {
-  line-height: 1.3;
   font-weight: 600;
 }
+
+h2 {
+  margin-top: 1.5em;
+}
+
 
 .content {
   position: relative;
@@ -28,13 +32,15 @@ h3 {
 }
 .header h1,
 .header p {
-  margin-top: -1.4em;
+  margin-top: -1.5em;
+  line-height: 1.45em;
 }
 
 ul {
   list-style: none;
   margin-left: 1.2em;
   padding-left: 0;
+  margin-top: -0.9em;
 }
 li p {
   margin: 0;
@@ -42,11 +48,10 @@ li p {
 }
 
 li p:before {
-  content: "◦";
-  font-weight: 900;
+  content: url(ellipse.svg);
   color: #FFEC01;
-  padding-right: 0.3em;
-  margin-left: -1em;
+  padding-right: 0.5em;
+  margin-left: -1.1em;
 }
 
 span {
@@ -55,18 +60,21 @@ span {
 
 p {
   color: #CFCFCF;
+  font-weight: lighter;
+  line-height: 1.45em;
+  margin-top: -0.9em;
 }
 
 hr {
-  color: #272727;
+  border: 1px solid #272727;
 }
 
 div .accented {
   background-color: #20A6C7;
   width: 3em;
   height: 4em;
-  margin-left: -3.2em;
-  margin-bottom: -3.5em;
+  margin-left: -3.9em;
+  margin-bottom: -3.9em;
 }
 div .estimation {
   background-color: #1B1B1B;
@@ -76,62 +84,89 @@ div .estimation {
 }
 .estimation h2 {
   width: 50%;
+  margin-top: 1.45em; 
+}
+.estimation p {
+  font-size: 0.7em;
 }
 div .time {
-  margin-left: 10em;
+  margin-right: 2em;
+  margin-top: 2em;
 }
 div .time h3,
 div .time p{
   margin: 0;
   margin-top: 0.3em;
+  line-height: 1em;
+}
+div .time h3 {
+  font-size: 1em;
 }
 
 .inlineheaders {
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-between;
 }
 .lineitem {
   max-width: 50%;
 }
 
 .team {
-  display: flex;
+  display: flex !important;
   flex-wrap: wrap;
   width: 100%;
   margin-left: 0; 
-}
-.team p {
-  font-size: 0.8em;
+  justify-content: space-around;
 }
 
 .person {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 0 1em 1em 0;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  margin: 0 1em 1em 0 !important;
   background-color: #0F0F0F;
-  border-radius: 0.3em;
-  width: 47%;
+  border-radius: 0.3em !important;
+  width: 21em !important;
+}
+
+.person:nth-child(even) {
+  margin-right: 2em;
 }
 
 .person img {
   display: inline-flex;
   vertical-align: top;
   border-radius: 2em;
-  margin: 1em 1em 1em 1em;
+  margin: 1.45em 1em 1.45em 1.45em;
   width: 4em;
   height: 4em;
 }
 .person .credits {
-  margin: 1em 1em 1em 0em;
+  margin: 1.45em 1em 1em 0em;
+  min-width: 50%;
 }
-.person .credits p {
+.person .credits p,
+.person .credits h3 {
   margin: 0;
   padding: 0;
 }
-.person .price {
-  margin: 1em;
+.credits strong{
+  font-size: 1.2em;
 }
-.price h2{
+.credits hr {
+  max-width: 4em;
+  margin-left: 0;
+  margin: 0;
+  margin-top: 0.45em;
+}
+.credits p {
+  margin: 0;
+  font-size: 0.7em;
+}
+.person .price {
+  margin: 1.45em 1em 1em 0em;
+}
+.price h3{
   color: #FFEC01;
   margin: 0;
   padding: 0;
@@ -143,7 +178,15 @@ div .time p{
 }
 
 .utor-logo {
-position: absolute;
-right: 0;
-top: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.utor-bug {
+  position: absolute;
+  right: 5em;
+  top: 12em;
+  width: 3em;
+  height: 3em;
 }
