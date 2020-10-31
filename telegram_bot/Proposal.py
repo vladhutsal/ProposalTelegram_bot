@@ -35,8 +35,8 @@ class Proposal:
         self.current_doc_name = None
 
         self.edit_all = True
-        self.add_rate = False
         self.test = False
+        self.finish = False
 
     def reset_iter(self):
         if self.dict_id_iterator:
