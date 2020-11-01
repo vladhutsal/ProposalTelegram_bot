@@ -9,7 +9,7 @@ from telegram_bot.Proposal import Proposal
 from telegram_bot.ProposalDBHandler import ProposalDBHandler
 
 from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML     # import CSS
+from weasyprint import HTML, CSS    # import CSS
 from docx import Document
 from telegram import (
     InlineKeyboardMarkup,
@@ -228,7 +228,7 @@ def store_photo(update, context):
     dir_path = 'media/engineers_photo/'
     name = proposal.get_random_name()
     photo_path = f'{dir_path}{name}.jpg'
-    save_path = f'"./{dir_path}{name}.jpg"'
+    save_path = f'./{dir_path}{name}.jpg'
     File_obj.download(custom_path=photo_path)
     proposal.store_content(save_path)
 
@@ -394,8 +394,8 @@ def generate_html(update, context):
 
     collected_data = proposal.collect_user_data_for_html()
 
-    env = Environment(loader=FileSystemLoader('static/'))
-    template = env.get_template('index.html')
+    env = Environment(loader=FileSystemLoader('.'))
+    template = env.get_template('static/index.html')
     jinja_rendered_html = template.render(**collected_data)
     proposal.html = generate_tmp_files('.html')[0]
 
@@ -409,14 +409,13 @@ def generate_pdf(update, context):
     proposal = context.user_data['proposal']
 
     pdf_doc = HTML(proposal.html.name)
-    pdf_doc_rndr = pdf_doc.render(stylesheets=['static/main.css'])
+    pdf_doc_rndr = pdf_doc.render(stylesheets=[CSS('static/main.css')])
     page = pdf_doc_rndr.pages[0]
     child_list = [child for child in page._page_box.descendants()]
-
-    body_height = child_list[2].height
-    page.height = body_height
+    page.height = child_list[2].height
     proposal.pdf = generate_tmp_files('.pdf')[0]
-    pdf_doc_rndr.write_pdf(proposal.pdf.name)
+    # pdf_doc.write_pdf(proposal.pdf.name, stylesheets=[CSS('static/main.css')])
+    pdf_doc_rndr.write_pdf(target=proposal.pdf.name)
 
     update.callback_query.answer()
 
