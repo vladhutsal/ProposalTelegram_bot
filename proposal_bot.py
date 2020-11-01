@@ -382,7 +382,7 @@ def show_error_message(update, context):
 def generate_tmp_files(*args):
     res = []
     for suffix in args:
-        tmp_file = tempfile.NamedTemporaryFile(suffix=suffix, dir='.')
+        tmp_file = tempfile.NamedTemporaryFile(suffix=suffix, dir='media/results')
         res.append(tmp_file)
     return res
 

@@ -12,7 +12,7 @@ def create_lorem_dict(proposal):
         'P': ['Position', 'QA engineer'],
         'RT': ['Rate', '85'],
         'EM': ['Email', 'vasya.puppet@u-tor.com'],
-        'PHT': ['Photo', 'engineers_photo/111.jpg']
+        'PHT': ['Photo', 'media/engineers_photo/111.jpg']
     }
 
     puppet2 = {
@@ -20,7 +20,7 @@ def create_lorem_dict(proposal):
         'P': ['Position', 'Team lead'],
         'RT': ['Rate', '45'],
         'EM': ['Email', 'petya.puppet@u-tor.com'],
-        'PHT': ['Photo', 'engineers_photo/222.jpg']
+        'PHT': ['Photo', 'media/engineers_photo/222.jpg']
     }
 
     puppet3 = {
@@ -28,7 +28,7 @@ def create_lorem_dict(proposal):
         'P': ['Position', 'Project manager'],
         'RT': ['Rate', '12'],
         'EM': ['Email', 'anton.puppet@u-tor.com'],
-        'PHT': ['Photo', 'engineers_photo/333.jpg']
+        'PHT': ['Photo', 'media/engineers_photo/333.jpg']
     }
 
     puppet_engineers = [puppet, puppet2]

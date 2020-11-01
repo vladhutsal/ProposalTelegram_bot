@@ -10,11 +10,6 @@ import os
 
 
 class Proposal:
-    # current_template = values of templates constatns,
-    # which is announced in telegram_bot.py
-    # current_template is used to match template that is active now,
-    # while user fill it with data.
-
     # current_dict = template data, dictionary like
     # {'title_id':['title_name', 'title_content']}
     def __init__(self, db_handler):
@@ -29,11 +24,11 @@ class Proposal:
 
         self.dict_id_iterator = None
 
-        self.current_template = None
         self.current_dict = None
         self.current_title_id = None
         self.current_doc_name = None
 
+        self.template = None
         self.edit_all = True
         self.test = False
         self.finish = False
