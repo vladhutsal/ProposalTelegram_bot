@@ -5,7 +5,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.pdf
-*.html
+
 !index.html
 credentials.py
 deprecated/
