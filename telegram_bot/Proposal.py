@@ -12,6 +12,7 @@ import os
 class Proposal:
     # current_dict = template data, dictionary like
     # {'title_id':['title_name', 'title_content']}
+
     def __init__(self, db_handler):
         self.db_handler = db_handler
 
@@ -26,9 +27,7 @@ class Proposal:
 
         self.current_dict = None
         self.current_title_id = None
-        self.current_doc_name = None
-
-        self.template = None
+        
         self.edit_all = True
         self.test = False
         self.finish = False
