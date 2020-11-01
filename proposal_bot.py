@@ -27,7 +27,7 @@ from telegram.ext import (
 logging.getLogger('apscheduler.scheduler').propagate = False
 
 # add description:
-STORE_DATA, SELECT_ACTION, STORE_DOCX, STORE_PHOTO = map(chr, range(4))
+STORE_DATA, SELECT_ACTION, STORE_DOCX, STORE_ENGINEER_TO_DB = map(chr, range(4))
 
 ADD_DOCX, ADD_INFO, ADD_NEW_ENGINEER, ADD_ENGINEERS_RATE,  = map(chr, range(5, 9))
 
@@ -44,10 +44,10 @@ def start(update, context):
     context.user_data['proposal'] = proposal
 
     context.user_data['templates'] = {
-        ADD_DOCX:           proposal.content_dict,
-        ADD_INFO:           proposal.info_dict,
-        ADD_NEW_ENGINEER:   proposal.engineer_dict,
-        ADD_ENGINEERS_RATE: db_handler.engineers_rates
+        ADD_DOCX:                proposal.content_dict,
+        ADD_INFO:                proposal.info_dict,
+        ADD_NEW_ENGINEER:        proposal.engineer_dict,
+        ADD_ENGINEERS_RATE:       db_handler.engineers_rates
     }
 
     # reset content dict when restarting proposal
@@ -100,6 +100,14 @@ def show_buttons(update, context):
     return SELECT_ACTION
 
 
+def init_template(update, context):
+    query = update.callback_query
+    proposal = context.user_data['proposal']
+    proposal.current_dict = detach_id_from_callback(query.data)
+
+    return next_title(update, context)
+
+
 def init_add_info(update, context):
     templates = context.user_data['templates']
     proposal = context.user_data['proposal']
@@ -149,37 +157,6 @@ def ask_for_docx(update, context):
     return STORE_DOCX
 
 
-def store_docx(update, context):
-    proposal = context.user_data['proposal']
-
-    file_id = update.message.document.file_id
-    name = proposal.get_random_name()
-    docx_path = f'media/{name}.docx'
-    proposal.current_doc_name = docx_path
-
-    Docx_obj = context.bot.get_file(file_id=file_id)
-    Docx_obj.download(custom_path=docx_path)
-    proposal.content_dict = docx_parser(proposal)
-
-    return init_add_info(update, context)
-
-
-def docx_parser(proposal):
-    doc = Document(proposal.current_doc_name)
-
-    for content in doc.paragraphs:
-        if content.style.name == 'Heading 2':
-            try:
-                proposal.get_next_title_id()
-            except StopIteration:
-                return True
-        elif not content.text:
-            pass
-        else:
-            proposal.store_content(content.text)
-    return proposal.current_dict
-
-
 # ================ FILL TEMPLATES WITH DATA
 def next_title(update, context):
     proposal = context.user_data['proposal']
@@ -201,7 +178,7 @@ def show_title(update, context):
                              text=title_name,
                              parse_mode=telegram.ParseMode.HTML)
     if title_id == 'PHT':
-        return STORE_PHOTO
+        return STORE_ENGINEER_TO_DB
 
     return STORE_DATA
 
@@ -217,30 +194,6 @@ def edit_title(update, context):
     return show_title(update, context)
 
 
-def store_photo(update, context):
-    proposal = context.user_data['proposal']
-    db_handler = context.user_data['db_handler']
-
-    photo_info = update.message.photo[-1]
-    file_id = photo_info.file_id
-    File_obj = context.bot.get_file(file_id=file_id)
-
-    dir_path = 'media/engineers_photo/'
-    name = proposal.get_random_name()
-    photo_path = f'{dir_path}{name}.jpg'
-    save_path = f'./{dir_path}{name}.jpg'
-    File_obj.download(custom_path=photo_path)
-    proposal.store_content(save_path)
-
-    # telegram_bot.py is no need to know about db_handler class
-    err = db_handler.store_new_engineer_to_db(proposal.current_dict)
-    proposal.reset_engineer_dict()
-    if err:
-        show_error_message(update, context)
-
-    return show_buttons(update, context)
-
-
 def store_data(update, context):
     proposal = context.user_data['proposal']
 
@@ -254,6 +207,61 @@ def store_data(update, context):
         proposal.edit_all = True
 
         return overview(update, context)
+
+
+def store_engineer_to_db(update, context):
+    proposal = context.user_data['proposal']
+    db_handler = context.user_data['db_handler']
+
+    photo_info = update.message.photo[-1]
+    file_id = photo_info.file_id
+    File_obj = context.bot.get_file(file_id=file_id)
+
+    dir_path = 'engineers_photo'
+    name = proposal.get_random_name()
+    downloaded_photo_path = f'media/{dir_path}/{name}.jpg'
+    path_for_template = f'../{dir_path}/{name}.jpg'
+    File_obj.download(custom_path=downloaded_photo_path)
+    proposal.store_content(path_for_template)
+    proposal.finish = False
+
+    # telegram_bot.py is no need to know about db_handler class
+    err = db_handler.store_new_engineer_to_db(proposal.current_dict)
+    proposal.reset_engineer_dict()
+    if err:
+        show_error_message(update, context)
+
+    return show_buttons(update, context)
+
+
+def store_docx(update, context):
+    proposal = context.user_data['proposal']
+
+    file_id = update.message.document.file_id
+    name = proposal.get_random_name()
+    docx_path = f'media/users_docx/{name}.docx'
+
+    Docx_obj = context.bot.get_file(file_id=file_id)
+    Docx_obj.download(custom_path=docx_path)
+    proposal.content_dict = docx_parser(proposal, docx_path)
+
+    return init_add_info(update, context)
+
+
+def docx_parser(proposal, docx_path):
+    doc = Document(docx_path)
+
+    for content in doc.paragraphs:
+        if content.style.name == 'Heading 2':
+            try:
+                proposal.get_next_title_id()
+            except StopIteration:
+                return True
+        elif not content.text:
+            pass
+        else:
+            proposal.store_content(content.text)
+    return proposal.current_dict
 
 
 # ================ EDIT AND OVERVIEW
@@ -314,6 +322,7 @@ def choose_engineers(update, context):
                 callback_data = f'{engineer_id}, {ADD_ENGINEER_TO_PROPOSAL}'
                 btn = [add_button(engineer_name, callback_data)]
                 buttons.append(btn)
+
     if engn_in_proposal:
         callback_data = ADD_ENGINEERS_RATE
     else:
@@ -395,7 +404,7 @@ def generate_html(update, context):
     collected_data = proposal.collect_user_data_for_html()
 
     env = Environment(loader=FileSystemLoader('.'))
-    template = env.get_template('static/index.html')
+    template = env.get_template('static/index_jinja.html')
     jinja_rendered_html = template.render(**collected_data)
     proposal.html = generate_tmp_files('.html')[0]
 
@@ -489,7 +498,7 @@ def main():
 
             STORE_DATA: [MessageHandler(Filters.text, store_data)],
 
-            STORE_PHOTO: [MessageHandler(Filters.photo, store_photo)],
+            STORE_ENGINEER_TO_DB: [MessageHandler(Filters.photo, store_engineer_to_db)],
 
             STORE_DOCX: [MessageHandler(Filters.document.docx, store_docx)],
         },
