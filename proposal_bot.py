@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 
+import os
 import logging
-import tempfile
-from telegram_bot.credentials import TOKEN
 
+from datetime import time
+from apscheduler.schedulers import Scheduler
+from telegram_bot.credentials import TOKEN
 from telegram_bot.Proposal import Proposal
 from telegram_bot.ProposalDBHandler import ProposalDBHandler
 
+from docx import Document
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML, CSS
-from docx import Document
 from telegram import (
+    ParseMode,
     InlineKeyboardMarkup,
     InlineKeyboardButton)
 
-from telegram import ParseMode
 from telegram.ext import (
     Updater,
     CommandHandler,
@@ -23,6 +25,18 @@ from telegram.ext import (
     ConversationHandler,
     CallbackQueryHandler)
 
+
+def daily_clear():
+    for filename in os.listdir(f'{os.getcwd()}/media/tempfiles'):
+        os.remove(os.path.join(os.getcwd(), filename))
+
+    for filename in os.listdir(f'{os.getcwd()}/media/users_docx'):
+        os.remove(os.path.join(os.getcwd(), filename))
+
+
+sched = Scheduler()
+sched.start()
+sched.add_cron_job(daily_clear, day_of_week='sun', hour='0')
 
 logging.getLogger('apscheduler.scheduler').propagate = False
 
