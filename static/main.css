@@ -4,7 +4,6 @@
   height: 20000px;
 }
 
-
 body {
   color: white;
   background-color: #0F0F0F;
@@ -14,8 +13,11 @@ body {
 h1,
 h2,
 h3 {
-  line-height: 1.3;
   font-weight: 600;
+}
+
+h2 {
+  margin-top: 1.5em;
 }
 
 .content {
@@ -23,30 +25,34 @@ h3 {
   max-width: 45rem;
   margin: 0 auto 8rem auto;
 }
+
 .header {
   margin-top: 1em;
 }
+
 .header h1,
 .header p {
-  margin-top: -1.4em;
+  margin-top: -1.5em;
+  line-height: 1.45em;
 }
 
 ul {
   list-style: none;
   margin-left: 1.2em;
   padding-left: 0;
+  margin-top: -0.9em;
 }
+
 li p {
   margin: 0;
   padding: 0;
 }
 
 li p:before {
-  content: "◦";
-  font-weight: 900;
+  content: url(media/ellipse.svg);
   color: #FFEC01;
-  padding-right: 0.3em;
-  margin-left: -1em;
+  padding-right: 0.5em;
+  margin-left: -1.1em;
 }
 
 span {
@@ -55,41 +61,59 @@ span {
 
 p {
   color: #CFCFCF;
+  font-weight: lighter;
+  line-height: 1.45em;
+  margin-top: -0.9em;
 }
 
 hr {
-  color: #272727;
+  border: 1px solid #272727;
 }
 
 div .accented {
   background-color: #20A6C7;
   width: 3em;
   height: 4em;
-  margin-left: -3.2em;
-  margin-bottom: -3.5em;
+  margin-left: -3.9em;
+  margin-bottom: -3.9em;
 }
+
 div .estimation {
   background-color: #1B1B1B;
   padding-top: 1em;
+  padding-bottom: 2em;
   margin-left: -3.2em;
+  margin-right: -3.2em;
   padding-left: 3.2em;
 }
+
 .estimation h2 {
   width: 50%;
+  margin-top: 1.45em;
 }
+
+.estimation p {
+  font-size: 0.7em;
+}
+
 div .time {
-  margin-left: 10em;
+  margin-right: 2em;
+  margin-top: 2em;
 }
+
 div .time h3,
 div .time p{
   margin: 0;
   margin-top: 0.3em;
+  line-height: 1em;
 }
 
 .inlineheaders {
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-between;
 }
+
 .lineitem {
   max-width: 50%;
 }
@@ -99,9 +123,7 @@ div .time p{
   flex-wrap: wrap;
   width: 100%;
   margin-left: 0; 
-}
-.team p {
-  font-size: 0.8em;
+  justify-content: space-around;
 }
 
 .person {
@@ -110,32 +132,58 @@ div .time p{
   margin: 0 1em 1em 0;
   background-color: #0F0F0F;
   border-radius: 0.3em;
-  width: 47%;
+  width: 22.5em;
+}
+
+.person:nth-child(even) {
+  margin-right: 2em
 }
 
 .person img {
   display: inline-flex;
   vertical-align: top;
   border-radius: 2em;
-  margin: 1em 1em 1em 1em;
+  margin: 1.45em 1em 1.45em 1.45em;
   width: 4em;
   height: 4em;
 }
+
 .person .credits {
-  margin: 1em 1em 1em 0em;
+  margin: 1.45em 1em 1em 0em;
+  min-width: 12.2em;
 }
-.person .credits p {
+
+.person .credits p,
+.person .credits h3 {
   margin: 0;
   padding: 0;
 }
-.person .price {
-  margin: 1em;
+
+.credits strong{
+  font-size: 1.2em;
 }
-.price h2{
+
+.credits hr {
+  max-width: 4em;
+  margin-left: 0;
+  margin: 0;
+  margin-top: 0.45em;
+}
+
+.credits p {
+  margin: 0;
+  font-size: 0.7em;
+}
+.person .price {
+  margin: 1.45em 1em 1em 0em;
+}
+
+.price h3{
   color: #FFEC01;
   margin: 0;
   padding: 0;
 }
+
 .price p {
   margin: auto;
   padding: 0;
@@ -143,7 +191,45 @@ div .time p{
 }
 
 .utor-logo {
-position: absolute;
-right: 0;
-top: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.utor-bug1 {
+  position: absolute;
+  right: 5em;
+  top: 23em;
+  width: 3em;
+}
+
+.utor-bug2 {
+  position: absolute;
+  transform: rotate(120deg);
+  right: 7em;
+  top: 2em;
+  width: 2em;
+}
+
+.plashka1 {
+  position: absolute;
+  transform: rotate(180deg);
+  left: -13.8em;
+  top: 24em;
+  width: 13.5em;
+}
+
+.plashka2 {
+  position: absolute;
+  right: -8em;
+  top: 59em;
+  width: 13.5em;
+}
+
+.plashka3 {
+  position: absolute;
+  transform: rotate(-90deg);
+  right: 10em;
+  top: -6em;
+  width: 13.5em;
 }
