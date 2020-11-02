@@ -63,41 +63,90 @@ logging.getLogger('apscheduler.scheduler').propagate = False
     TEST,
     SHOW_BUTTONS,
     CHOOSE_TITLE_TO_EDIT,
-    ADD_ENGINEER_TO_PROPOSAL
-) = map(chr, range(10, 17))
+    ADD_ENGINEER_TO_PROPOSAL,
+    SETTINGS,
+    HOW_TO_USE,
+    EDIT_ENGINEERS,
+    START
+) = map(chr, range(10, 21))
 
 
-def start(update, context):
+def init_Proposal(update, context):
     db_handler = ProposalDBHandler()
     proposal = Proposal(db_handler)
 
     context.user_data['db_handler'] = db_handler
     context.user_data['proposal'] = proposal
     context.user_data['chat_id'] = update.message.chat_id
-    context.user_data['test'] = False
     context.user_data['direxists'] = False
 
     context.user_data['templates'] = {
         ADD_DOCX:                proposal.content_dict,
         ADD_INFO:                proposal.info_dict,
         ADD_NEW_ENGINEER:        proposal.engineer_dict,
-        ADD_ENGINEERS_RATE:       db_handler.engineers_rates
+        ADD_ENGINEERS_RATE:      db_handler.engineers_rates
     }
 
+    return start(update, context)
+
+
+def start(update, context):
     # reset content dict when restarting proposal
     buttons = [[
         add_button('Create new proposal', ADD_DOCX),
-        add_button('Test', TEST)
+        add_button('Settings', SETTINGS)
     ]]
 
     keyboard = InlineKeyboardMarkup(buttons)
-    update.message.reply_text('Hi, I`ll help you to complete the proposal.')
-    update.message.reply_text(text='What do you want to do?',
-                              reply_markup=keyboard)
+    text1 = 'Hi, I`ll help you to complete the proposal.'
+    text2 = 'What do you want to do?'
+
+    if getattr(update, 'callback_query'):
+        edit = True
+    else:
+        edit = False
+
+    send_message(update, text1, edit=edit)
+    send_message(update, text2, keyboard, edit=edit)
 
     return SELECT_ACTION
 
 
+def settings(update, context):
+    query = update.callback_query
+    buttons = [
+        [
+            add_button('How to use', HOW_TO_USE),
+            add_button('Test PDF', TEST)
+        ],
+        [
+            add_button('<< Back', START)
+        ]
+        # [
+        #     add_button('Add new engineer', ADD_NEW_ENGINEER),
+        #     add_button('Edit engineers', EDIT_ENGINEERS)
+        # ]
+    ]
+    text = 'Choose your action'
+    keyboard = InlineKeyboardMarkup(buttons)
+    send_message(update, text, keyboard, edit=True)
+
+    return SELECT_ACTION
+
+
+def how_to_use(update, context):
+    query = update.callback_query
+    text = '[How to use this bot](https://github.com/vladhutsal/Telegram-proposal-bot/blob/master/docs/README.md)'
+
+    button = add_button('<< Back', SETTINGS)
+    keyboard = InlineKeyboardMarkup.from_button(button)
+    send_message(update, text, keyboard, edit=True, parse="MARKD")
+    query.answer()
+
+    return SELECT_ACTION
+
+
+# ================ SHOW BUTTONS AND INIT TEMPLATES
 def show_buttons(update, context):
     proposal = context.user_data['proposal']
 
@@ -116,10 +165,10 @@ def show_buttons(update, context):
     text = '<b>What`s next?</b>'
     keyboard = InlineKeyboardMarkup.from_row(buttons)
     if getattr(update, 'callback_query'):
-        send_message(update, text, keyboard, edit=True, parse=True)
+        send_message(update, text, keyboard, edit=True, parse='HTML')
         update.callback_query.answer()
     else:
-        send_message(update, text, keyboard, parse=True)
+        send_message(update, text, keyboard, parse='HTML')
 
     return SELECT_ACTION
 
@@ -165,7 +214,7 @@ def ask_for_docx(update, context):
     return STORE_DOCX
 
 
-# ================ FILL TEMPLATES WITH DATA
+# ================ FILL TEMPLATES WITH DATA, STORE DATA TO DICTS
 def next_title(update, context):
     proposal = context.user_data['proposal']
 
@@ -184,25 +233,14 @@ def show_title(update, context):
     title_name = proposal.get_bold_title(title_id)
 
     if getattr(update, 'callback_query'):
-        send_message(update, title_name, parse=True, edit=True)
+        send_message(update, title_name, parse='HTML', edit=True)
     else:
-        send_message(update, title_name, parse=True)
+        send_message(update, title_name, parse='HTML')
 
     if title_id == 'PHT':
         return STORE_ENGINEER_TO_DB
 
     return STORE_DATA
-
-
-def edit_title(update, context):
-    proposal = context.user_data['proposal']
-
-    query = update.callback_query
-    proposal.current_title_id = detach_id_from_callback(query.data)
-    proposal.edit_all = False
-    query.answer()
-
-    return show_title(update, context)
 
 
 def store_data(update, context):
@@ -256,7 +294,6 @@ def store_docx(update, context):
     Docx_obj = context.bot.get_file(file_id=file_id)
     Docx_obj.download(custom_path=docx_path)
     proposal.content_dict = docx_parser(proposal, docx_path)
-    print(proposal.content_dict)
 
     return init_add_info(update, context)
 
@@ -265,7 +302,7 @@ def docx_parser(proposal, docx_path):
     doc = Document(docx_path)
 
     for content in doc.paragraphs:
-        if content.style.name == 'Heading 2':
+        if 'Heading' in content.style.name:
             try:
                 proposal.get_next_title_id()
             except StopIteration:
@@ -282,13 +319,13 @@ def docx_parser(proposal, docx_path):
 def overview(update, context):
     proposal = context.user_data['proposal']
     text = '<b>Info you`ve provided:</b>'
-    send_message(update, text, parse=True)
+    send_message(update, text, parse='HTML')
 
     for title_id in proposal.current_dict.keys():
         title = proposal.get_bold_title(title_id)
         content = proposal.get_title_content(title_id)
         text = f'{title}\n{content}'
-        send_message(update, text, parse=True)
+        send_message(update, text, parse='HTML')
 
     return show_buttons(update, context)
 
@@ -314,6 +351,17 @@ def choose_title_to_edit(update, context):
     query.answer()
 
     return SELECT_ACTION
+
+
+def edit_title(update, context):
+    proposal = context.user_data['proposal']
+
+    query = update.callback_query
+    proposal.current_title_id = detach_id_from_callback(query.data)
+    proposal.edit_all = False
+    query.answer()
+
+    return show_title(update, context)
 
 
 # ================ ENGINEERS
@@ -384,20 +432,25 @@ def add_button(text, callback):
     return btn
 
 
-def send_message(updt, text, keybrd=None, edit=False, parse=False):
-    parse_md = ParseMode.HTML if parse else None
+def send_message(updt, text, keybrd=None, edit=False, parse=None):
+    if not parse:
+        parse_mode = None
+    elif parse == 'MARKD':
+        parse_mode = ParseMode.MARKDOWN_V2
+    elif parse == 'HTML':
+        parse_mode = ParseMode.HTML
 
     if edit:
         updt.callback_query.edit_message_text(
             text=text,
-            parse_mode=parse_md,
+            parse_mode=parse_mode,
             reply_markup=keybrd
         )
 
     elif not edit:
         updt.message.reply_text(
             text=text,
-            parse_mode=parse_md,
+            parse_mode=parse_mode,
             reply_markup=keybrd
         )
 
@@ -414,7 +467,7 @@ def show_error_message(update, context):
 
 
 def generate_tmp_file(proposal, file_frmt):
-    client_name = proposal.info_dict['CN'][1]
+    client_name = proposal.info_dict['CN'][1].replace(' ', '_')
 
     if proposal.test:
         filename = 'Proposal for TEST Co'+file_frmt
@@ -492,13 +545,23 @@ def main():
     updater = Updater(token=TOKEN, use_context=True)
     dispatcher = updater.dispatcher
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
+        entry_points=[CommandHandler('start', init_Proposal)],
         states={
             SELECT_ACTION: [CallbackQueryHandler(init_add_docx,
                             pattern=ADD_DOCX),
 
                             CallbackQueryHandler(show_buttons,
                             pattern=SHOW_BUTTONS),
+
+
+                            CallbackQueryHandler(start,
+                            pattern=START),
+
+                            CallbackQueryHandler(settings,
+                            pattern=SETTINGS),
+
+                            CallbackQueryHandler(how_to_use,
+                            pattern=HOW_TO_USE),
 
 
                             CallbackQueryHandler(choose_engineers,
