@@ -1,6 +1,8 @@
-DB:
-delete existed engineers
-edit existed engineers
+- More than one user per session (need to be tested)
 
-More than one user per session
-
+- Settings button:
+    - Delete existed engineers
+    - Edit existed engineers
+    - Generate test PDF
+    - Add new engineer
+    - How to use the bot
