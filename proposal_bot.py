@@ -3,8 +3,7 @@
 import os
 import logging
 
-from datetime import time
-from apscheduler.schedulers import Scheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 from telegram_bot.credentials import TOKEN
 from telegram_bot.Proposal import Proposal
 from telegram_bot.ProposalDBHandler import ProposalDBHandler
@@ -34,9 +33,9 @@ def daily_clear():
         os.remove(os.path.join(os.getcwd(), filename))
 
 
-sched = Scheduler()
+sched = BackgroundScheduler()
+sched.add_job(daily_clear, 'cron', day_of_week='sun', hour='0')
 sched.start()
-sched.add_cron_job(daily_clear, day_of_week='sun', hour='0')
 
 logging.getLogger('apscheduler.scheduler').propagate = False
 
@@ -74,6 +73,9 @@ def start(update, context):
 
     context.user_data['db_handler'] = db_handler
     context.user_data['proposal'] = proposal
+    context.user_data['chat_id'] = update.message.chat_id
+    context.user_data['test'] = False
+    context.user_data['direxists'] = False
 
     context.user_data['templates'] = {
         ADD_DOCX:                proposal.content_dict,
@@ -83,9 +85,6 @@ def start(update, context):
     }
 
     # reset content dict when restarting proposal
-    context.user_data['chat_id'] = update.message.chat_id
-    context.user_data['test'] = False
-
     buttons = [[
         add_button('Create new proposal', ADD_DOCX),
         add_button('Test', TEST)
@@ -257,6 +256,7 @@ def store_docx(update, context):
     Docx_obj = context.bot.get_file(file_id=file_id)
     Docx_obj.download(custom_path=docx_path)
     proposal.content_dict = docx_parser(proposal, docx_path)
+    print(proposal.content_dict)
 
     return init_add_info(update, context)
 
@@ -416,14 +416,14 @@ def show_error_message(update, context):
 def generate_tmp_file(proposal, file_frmt):
     client_name = proposal.info_dict['CN'][1]
 
-    if file_frmt == '.pdf' and not proposal.test:
-        filename = f'Proposal for {client_name}'+file_frmt
-
-    elif file_frmt == '.html' and not proposal.test:
-        filename = proposal.add_timestamp(client_name)+file_frmt
-
-    elif proposal.test:
+    if proposal.test:
         filename = 'Proposal for TEST Co'+file_frmt
+
+    elif file_frmt == '.pdf':
+        filename = f'UTOR_{client_name}_proposal'+file_frmt
+
+    elif file_frmt == '.html':
+        filename = proposal.add_timestamp(client_name)+file_frmt
 
     dir_path = 'media/tempfiles'
     with open(f'{dir_path}/{filename}', 'w+') as tmpfile:
@@ -434,9 +434,7 @@ def generate_tmp_file(proposal, file_frmt):
 # how to call all next functions without update and context args?
 def generate_html(update, context):
     proposal = context.user_data['proposal']
-
     collected_data = proposal.collect_user_data_for_html()
-
     env = Environment(loader=FileSystemLoader('.'))
     template = env.get_template('static/index_jinja.html')
     jinja_rendered_html = template.render(**collected_data)
