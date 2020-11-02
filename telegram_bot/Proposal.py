@@ -64,10 +64,10 @@ class Proposal:
             self.get_random_name()
         return rand_nm
 
-    def get_colored_titles(self, dict_name):
+    def get_colored_titles(self):
         # use here a function to iterate through dictionaries,
         # like in get_all_engineers func
-        colored_titles_dict = get_template(dict_name)
+        colored_titles_dict = self.content_dict
         for title_id in colored_titles_dict.keys():
             title = colored_titles_dict[title_id][0]
             *title_white, title_blue = title.split(' ')
@@ -81,7 +81,7 @@ class Proposal:
             data = create_lorem_dict(self)
         else:
             data = {
-                'content_dict': self.get_colored_titles('content'),
+                'content_dict': self.get_colored_titles(),
                 'info_dict': self.info_dict,
                 'engineers_list': self.db_handler.get_proposal_engineers()
             }
