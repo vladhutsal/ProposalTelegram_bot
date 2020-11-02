@@ -12,7 +12,7 @@ def create_lorem_dict(proposal):
         'P': ['Position', 'QA engineer'],
         'RT': ['Rate', '85'],
         'EM': ['Email', 'vasya.puppet@u-tor.com'],
-        'PHT': ['Photo', 'media/engineers_photo/111.jpg']
+        'PHT': ['Photo', '../engineers_photo/111.jpg']
     }
 
     puppet2 = {
@@ -20,7 +20,7 @@ def create_lorem_dict(proposal):
         'P': ['Position', 'Team lead'],
         'RT': ['Rate', '45'],
         'EM': ['Email', 'petya.puppet@u-tor.com'],
-        'PHT': ['Photo', 'media/engineers_photo/222.jpg']
+        'PHT': ['Photo', '../engineers_photo/222.jpg']
     }
 
     puppet3 = {
@@ -28,7 +28,7 @@ def create_lorem_dict(proposal):
         'P': ['Position', 'Project manager'],
         'RT': ['Rate', '12'],
         'EM': ['Email', 'anton.puppet@u-tor.com'],
-        'PHT': ['Photo', 'media/engineers_photo/333.jpg']
+        'PHT': ['Photo', '../engineers_photo/333.jpg']
     }
 
     puppet_engineers = [puppet, puppet2]
@@ -46,12 +46,12 @@ def create_lorem_dict(proposal):
         info_template[title_id][1] = lorem.words(randint(2, 5))
 
     content_template['EHPW_line'][1] = '40 hrs/week'
-    info_template['DL'][1] = '30.10.2020'
-    info_template['CD'][1] = '27.10.2020'
+    info_template['DL'][1] = 'November 2, 2020'
+    info_template['CD'][1] = 'November 29, 2020'
     info_template['PB'][1] = 'Alex'
 
     return {
-        'content_dict': proposal.get_colored_titles(content_template),
+        'content_dict': proposal.get_colored_titles('content'),
         'info_dict': info_template,
         'engineers_list': puppet_engineers
     }
