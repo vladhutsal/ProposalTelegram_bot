@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import telegram
 import logging
 import tempfile
 from telegram_bot.credentials import TOKEN
@@ -217,9 +216,10 @@ def store_engineer_to_db(update, context):
     File_obj = context.bot.get_file(file_id=file_id)
 
     dir_path = 'engineers_photo'
-    name = proposal.get_random_name()
-    downloaded_photo_path = f'media/{dir_path}/{name}.jpg'
-    path_for_template = f'../{dir_path}/{name}.jpg'
+    name = proposal.engineer_dict['N'][1]
+    file_name = proposal.add_timestamp(name)
+    downloaded_photo_path = f'media/{dir_path}/{file_name}.jpg'
+    path_for_template = f'../{dir_path}/{file_name}.jpg'
     File_obj.download(custom_path=downloaded_photo_path)
     proposal.store_content(path_for_template)
     proposal.finish = False
@@ -399,14 +399,21 @@ def show_error_message(update, context):
                              text='This engineer is already in db')
 
 
-def generate_tmp_files(*args):
-    res = []
-    for suffix in args:
-        tmp_file = tempfile.NamedTemporaryFile(
-            suffix=suffix, dir='media/results'
-        )
-        res.append(tmp_file)
-    return res
+def generate_tmp_file(proposal, file_frmt):
+    client_name = proposal.info_dict['CN'][1]
+
+    if file_frmt == '.pdf' and not proposal.test:
+        filename = f'Proposal for {client_name}'+file_frmt
+
+    elif file_frmt == '.html' and not proposal.test:
+        filename = proposal.add_timestamp(client_name)+file_frmt
+
+    elif proposal.test:
+        filename = 'Proposal for TEST Co'+file_frmt
+
+    dir_path = 'media/tempfiles'
+    with open(f'{dir_path}/{filename}', 'w+') as tmpfile:
+        return tmpfile
 
 
 # ================ HTML TO PDF
@@ -419,7 +426,7 @@ def generate_html(update, context):
     env = Environment(loader=FileSystemLoader('.'))
     template = env.get_template('static/index_jinja.html')
     jinja_rendered_html = template.render(**collected_data)
-    proposal.html = generate_tmp_files('.html')[0]
+    proposal.html = generate_tmp_file(proposal, '.html')
 
     with open(proposal.html.name, 'w+') as html:
         html.write(jinja_rendered_html)
@@ -435,7 +442,7 @@ def generate_pdf(update, context):
     page = pdf_doc_rndr.pages[0]
     child_list = [child for child in page._page_box.descendants()]
     page.height = child_list[2].height
-    proposal.pdf = generate_tmp_files('.pdf')[0]
+    proposal.pdf = generate_tmp_file(proposal, '.pdf')
     # pdf_doc.write_pdf(proposal.pdf.name, stylesheets=[CSS('static/main.css')])
     pdf_doc_rndr.write_pdf(target=proposal.pdf.name)
 
