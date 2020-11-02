@@ -64,10 +64,6 @@ class Proposal:
             self.get_random_name()
         return rand_nm
 
-    def get_engineers_photo_name(self):
-        name = self.engineer_dict['N'][1]
-        serialized = serialize_names(text)
-
     def get_colored_titles(self, dict_name):
         # use here a function to iterate through dictionaries,
         # like in get_all_engineers func
@@ -92,9 +88,9 @@ class Proposal:
 
         return data
 
-    def serialize_names(text):
+    def add_timestamp(self, text):
         date = datetime.now().strftime('%m_%d_%Y')
-        time = datetime.now().strftime('%H:%M')
-        text = text.replace(' ', '_')
-        text += f'_{date}_{time}'
-        return text
+        time = datetime.now().strftime('%H%M')
+        name = text.replace(' ', '_')
+        name += f'_{date}_{time}'
+        return name
