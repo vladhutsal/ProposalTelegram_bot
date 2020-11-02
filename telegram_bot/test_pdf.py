@@ -50,8 +50,11 @@ def create_lorem_dict(proposal):
     info_template['CD'][1] = 'November 29, 2020'
     info_template['PB'][1] = 'Alex'
 
+    proposal.content_dict = content_template
+    proposal.info_dict = info_template
+
     return {
-        'content_dict': proposal.get_colored_titles('content'),
+        'content_dict': proposal.get_colored_titles(),
         'info_dict': info_template,
         'engineers_list': puppet_engineers
     }
