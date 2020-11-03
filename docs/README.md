@@ -19,10 +19,10 @@ Two parts:
 ## Overview
 
 #### There are four parts of proposal creation flow:
-      1. You send your document
-      2. You add additional info, answering bot's questions (e.g. Creation date or Deadlines)
-      3. You choose engineer from an engineers list
-      4. You add engineers rate for current proposal
+      1. Send your document
+      2. Add additional info, answering bot's questions (e.g. Creation date or Deadlines)
+      3. Choose engineer from an engineers list
+      4. Add engineers rate for current proposal
 
 Every iteration overs after you press button, that placed right to the `Edit info` button, at "What's next?" stage  (e.g. `Choose engineer` or `Continue`)
 
