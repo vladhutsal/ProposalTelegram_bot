@@ -489,7 +489,7 @@ def generate_html(update, context):
     proposal = context.user_data['proposal']
     collected_data = proposal.collect_user_data_for_html()
     env = Environment(loader=FileSystemLoader('.'))
-    template = env.get_template('static/index_jinja.html')
+    template = env.get_template('static/index_clear.html')
     jinja_rendered_html = template.render(**collected_data)
     proposal.html = generate_tmp_file(proposal, '.html')
 
