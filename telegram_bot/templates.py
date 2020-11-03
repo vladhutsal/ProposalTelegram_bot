@@ -1,4 +1,4 @@
-# let this work, eg give a copy of dict
+from copy import deepcopy
 
 content_template = {
     # '<title-id>_<html-position>': ['<title>', '<content>']
@@ -11,10 +11,12 @@ content_template = {
     'VA_list': ['Value Added', '']
 }
 
+# set date automaticaly
 info_template = {
     'PB': ['Prepared by', ''],
     'CD': ['Creation date', ''],
-    'DL': ['Deadlines', '']
+    'DL': ['Deadlines', ''],
+    'CN': ['Client`s company name', '']
 }
 
 engineer_template = {
@@ -23,3 +25,15 @@ engineer_template = {
     'EM': ['Email', ''],
     'PHT': ['Photo', '']
 }
+
+templates = {
+    'content': content_template,
+    'info': info_template,
+    'engineer': engineer_template
+}
+
+
+def get_template(template_name):
+    for template in templates.keys():
+        if template == template_name:
+            return deepcopy(templates[template])

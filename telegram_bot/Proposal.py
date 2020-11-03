@@ -1,38 +1,30 @@
-from . templates import (
-    content_template,
-    info_template,
-    engineer_template
-)
+from datetime import datetime
+
+from . templates import get_template
 from . test_pdf import create_lorem_dict
-from copy import deepcopy
+
 import random
 import os
 
 
 class Proposal:
-    # current_template = values of templates constatns,
-    # which is announced in telegram_bot.py
-    # current_template is used to match template that is active now,
-    # while user fill it with data.
-
     # current_dict = template data, dictionary like
     # {'title_id':['title_name', 'title_content']}
+
     def __init__(self, db_handler):
         self.db_handler = db_handler
 
-        self.content_dict = deepcopy(content_template)
-        self.info_dict = deepcopy(info_template)
-        self.engineer_dict = deepcopy(engineer_template)
+        self.content_dict = get_template('content')
+        self.info_dict = get_template('info')
+        self.engineer_dict = get_template('engineer')
 
         self.html = None
         self.pdf = None
 
         self.dict_id_iterator = None
 
-        self.current_template = None
         self.current_dict = None
         self.current_title_id = None
-        self.current_doc_name = None
 
         self.edit_all = True
         self.test = False
@@ -44,8 +36,8 @@ class Proposal:
 
         self.dict_id_iterator = iter(self.current_dict.keys())
 
-    def reset_engineer_dict(self):
-        self.engineer_dict = deepcopy(engineer_template)
+    def reset_dict(self, name):
+        setattr(self, f'{name}_dict', get_template(name))
 
     def store_content(self, content):
         self.current_dict[self.current_title_id][1] = content
@@ -72,14 +64,14 @@ class Proposal:
             self.get_random_name()
         return rand_nm
 
-    def get_colored_titles(self, user_dict):
+    def get_colored_titles(self):
         # use here a function to iterate through dictionaries,
         # like in get_all_engineers func
-        colored_titles_dict = deepcopy(user_dict)
+        colored_titles_dict = self.content_dict
         for title_id in colored_titles_dict.keys():
             title = colored_titles_dict[title_id][0]
-            title_white = ' '.join(title.split(' ')[0:-1])
-            title_blue = title.split(' ')[-1]
+            *title_white, title_blue = title.split(' ')
+            title_white = ' '.join(title_white)
             colored_titles_dict[title_id][0] = [f'{title_white} ', title_blue]
         return colored_titles_dict
 
@@ -89,9 +81,16 @@ class Proposal:
             data = create_lorem_dict(self)
         else:
             data = {
-                'content_dict': self.get_colored_titles(self.content_dict),
+                'content_dict': self.get_colored_titles(),
                 'info_dict': self.info_dict,
                 'engineers_list': self.db_handler.get_proposal_engineers()
             }
 
         return data
+
+    def add_timestamp(self, text):
+        date = datetime.now().strftime('%m_%d_%Y')
+        time = datetime.now().strftime('%H%M')
+        name = text.replace(' ', '_')
+        name += f'_{date}_{time}'
+        return name
