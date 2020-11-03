@@ -59,7 +59,7 @@ Every iteration overs after you press button, that placed right to the `Edit inf
     6. Expected hours per week
     7. Value added
 
-#### 2. Press "Create new proposal" button\.
+#### 2. Press `Create new proposal` button.
 
 #### 3. Download your \*.docx file and send it to the Bot.
 
