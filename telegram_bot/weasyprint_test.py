@@ -1,9 +1,11 @@
-from jinja2 import Environment, FileSystemLoader
+#!/usr/bin/env python3
+
+from copy import deepcopy
+from random import randint
 from weasyprint import HTML
 from lorem_text import lorem
-from random import randint
-from copy import deepcopy
 
+from jinja2 import Environment, FileSystemLoader
 
 content_template = {
     # '<title-id>_<html-position>': ['<title>', '<content>']
@@ -56,7 +58,7 @@ puppet4 = {
 
 
 def create_lorem_dict():
-    puppet_engineers = [puppet, puppet2, puppet3, puppet4]
+    puppet_engineers = [puppet]
 
     # generating lorem text for content dict
     for title_id in content_template.keys():
@@ -96,7 +98,7 @@ def generate_html():
     collected_data = create_lorem_dict()
 
     env = Environment(loader=FileSystemLoader('static/'))
-    template = env.get_template('index_clear_merged.html')
+    template = env.get_template('index_clear.html')
     jinja_rendered_html = template.render(**collected_data)
 
     with open('result.html', 'w+') as html:

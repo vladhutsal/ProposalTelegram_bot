@@ -36,7 +36,6 @@ h2 {
   line-height: 1.45em;
 }
 
-
 ul {
   list-style: none;
   margin-left: 1.2em;
@@ -151,7 +150,7 @@ div .time p{
 
 .person .credits {
   margin: 1.45em 1em 1em 0em;
-  min-width: 12.2em;
+  min-width: 11em;
 }
 
 .person .credits p,

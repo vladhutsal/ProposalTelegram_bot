@@ -29,6 +29,8 @@ class Proposal:
         self.edit_all = True
         self.test = False
         self.finish = False
+        self.settings = False
+        self.interactive = False
 
     def reset_iter(self):
         if self.dict_id_iterator:
