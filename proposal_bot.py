@@ -66,7 +66,7 @@ logging.getLogger('apscheduler.scheduler').propagate = False
     ADD_ENGINEER_TO_PROPOSAL,
     SETTINGS,
     HOW_TO_USE,
-    EDIT_ENGINEERS,
+    ENGINEERS_SETTINGS,
     START
 ) = map(chr, range(10, 21))
 
@@ -91,10 +91,12 @@ def init_Proposal(update, context):
 
 
 def start(update, context):
+    proposal = context.user_data['proposal']
+    proposal.settings = False
     # reset content dict when restarting proposal
     buttons = [[
         add_button('Create new proposal', ADD_DOCX),
-        add_button('Settings', SETTINGS)
+        add_button('More..', SETTINGS)
     ]]
 
     keyboard = InlineKeyboardMarkup(buttons)
@@ -103,6 +105,7 @@ def start(update, context):
 
     if getattr(update, 'callback_query'):
         edit = True
+        update.callback_query.answer()
     else:
         edit = False
 
@@ -113,25 +116,41 @@ def start(update, context):
 
 
 def settings(update, context):
+    proposal = context.user_data['proposal']
+    proposal.settings = True
     query = update.callback_query
     buttons = [
         [
-            add_button('How to use', HOW_TO_USE),
+            add_button('How to use', HOW_TO_USE)
+        ],
+        [
+            # add_button('Edit engineers', ENGINEERS_SETTINGS),
             add_button('Test PDF', TEST)
         ],
         [
             add_button('<< Back', START)
         ]
-        # [
-        #     add_button('Add new engineer', ADD_NEW_ENGINEER),
-        #     add_button('Edit engineers', EDIT_ENGINEERS)
-        # ]
+    ]
+    text = 'What do you want to do?'
+    keyboard = InlineKeyboardMarkup(buttons)
+    send_message(update, text=text, keybrd=keyboard, edit=True)
+
+    return SELECT_ACTION
+
+
+def engineers_settings(update, context):
+    buttons = [
+        [
+            add_button('Add engineer', ADD_NEW_ENGINEER),
+            add_button('Delete engineer', DELETE_ENGINEER)
+        ],
+        [
+            add_button('<< Back', START)
+        ]
     ]
     text = 'Choose your action'
     keyboard = InlineKeyboardMarkup(buttons)
     send_message(update, text, keyboard, edit=True)
-
-    return SELECT_ACTION
 
 
 def how_to_use(update, context):
@@ -164,11 +183,15 @@ def show_buttons(update, context):
 
     text = '<b>What`s next?</b>'
     keyboard = InlineKeyboardMarkup.from_row(buttons)
+
+    # add this check to send_message(), because there is a need to use this often
     if getattr(update, 'callback_query'):
-        send_message(update, text, keyboard, edit=True, parse='HTML')
+        edit = True
         update.callback_query.answer()
     else:
-        send_message(update, text, keyboard, parse='HTML')
+        edit = False
+
+    send_message(update, text, keyboard, edit=edit, parse='HTML')
 
     return SELECT_ACTION
 
@@ -281,6 +304,9 @@ def store_engineer_to_db(update, context):
     if err:
         show_error_message(update, context)
 
+    if proposal.settings:
+        return engineers_settings(update, context)
+
     return show_buttons(update, context)
 
 
@@ -365,10 +391,9 @@ def edit_title(update, context):
 
 
 # ================ ENGINEERS
-def choose_engineers(update, context):
+def show_engineers(update, context):
     db_handler = context.user_data['db_handler']
 
-    query = update.callback_query
     engineers = db_handler.get_engineers_id_list()
     engn_in_proposal = db_handler.engineers_in_proposal_id
 
@@ -380,6 +405,13 @@ def choose_engineers(update, context):
                 callback_data = f'{engineer_id}, {ADD_ENGINEER_TO_PROPOSAL}'
                 btn = [add_button(engineer_name, callback_data)]
                 buttons.append(btn)
+    return buttons, engn_in_proposal
+
+
+def choose_engineers(update, context):
+    query = update.callback_query
+
+    buttons, engn_in_proposal = show_engineers(update, context)
 
     if engn_in_proposal:
         callback_data = ADD_ENGINEERS_RATE
@@ -448,7 +480,7 @@ def send_message(updt, text, keybrd=None, edit=False, parse=None):
         )
 
     elif not edit:
-        updt.message.reply_text(
+        updt.effective_message.reply_text(
             text=text,
             parse_mode=parse_mode,
             reply_markup=keybrd
@@ -484,12 +516,14 @@ def generate_tmp_file(proposal, file_frmt):
 
 
 # ================ HTML TO PDF
-# how to call all next functions without update and context args?
+
 def generate_html(update, context):
     proposal = context.user_data['proposal']
+    html_template_path = 'static/index_jinja.html'
+
     collected_data = proposal.collect_user_data_for_html()
     env = Environment(loader=FileSystemLoader('.'))
-    template = env.get_template('static/index_clear.html')
+    template = env.get_template(html_template_path)
     jinja_rendered_html = template.render(**collected_data)
     proposal.html = generate_tmp_file(proposal, '.html')
 
@@ -501,14 +535,14 @@ def generate_html(update, context):
 
 def generate_pdf(update, context):
     proposal = context.user_data['proposal']
+    css_path = 'static/main.css'
 
     pdf_doc = HTML(proposal.html.name)
-    pdf_doc_rndr = pdf_doc.render(stylesheets=[CSS('static/main.css')])
+    pdf_doc_rndr = pdf_doc.render(stylesheets=[CSS(css_path)])
     page = pdf_doc_rndr.pages[0]
     child_list = [child for child in page._page_box.descendants()]
     page.height = child_list[2].height
     proposal.pdf = generate_tmp_file(proposal, '.pdf')
-    # pdf_doc.write_pdf(proposal.pdf.name, stylesheets=[CSS('static/main.css')])
     pdf_doc_rndr.write_pdf(target=proposal.pdf.name)
 
     update.callback_query.answer()
@@ -521,6 +555,9 @@ def send_pdf(context, update):
 
     chat_id = context.user_data['chat_id']
 
+    if proposal.interactive:
+        send_message(update, 'Tap /start to start over')
+
     with open(proposal.pdf.name, 'rb') as pdf:
         context.bot.send_document(chat_id=chat_id, document=pdf)
 
@@ -530,15 +567,15 @@ def send_pdf(context, update):
 # ================ GENERATE TEST PDF
 def get_test_pdf_dict(update, context):
     proposal = context.user_data['proposal']
-
+    
     proposal.test = True
     update.callback_query.answer()
 
     return generate_html(update, context)
 
 
-def end():
-    pass
+def end(update, context):
+    return ConversationHandler.END
 
 
 def main():
@@ -562,6 +599,9 @@ def main():
 
                             CallbackQueryHandler(how_to_use,
                             pattern=HOW_TO_USE),
+
+                            CallbackQueryHandler(engineers_settings,
+                            pattern=ENGINEERS_SETTINGS),
 
 
                             CallbackQueryHandler(choose_engineers,
@@ -589,7 +629,9 @@ def main():
 
 
                             CallbackQueryHandler(generate_html,
-                            pattern='^' + str(CREATE_PDF) + '$')],
+                            pattern='^' + str(CREATE_PDF) + '$'),
+                            
+                            CommandHandler('stop', end)],
 
             STORE_DATA: [MessageHandler(Filters.text, store_data)],
 
