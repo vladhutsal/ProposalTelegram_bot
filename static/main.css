@@ -8,6 +8,7 @@ body {
   color: white;
   background-color: #0F0F0F;
   font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
 }
 
 h1,
@@ -22,8 +23,12 @@ h2 {
 
 .content {
   position: relative;
-  max-width: 45rem;
+  max-width: 47rem;
   margin: 0 auto 8rem auto;
+}
+.content-fix {
+  margin:  0 0em 0 0em;
+  padding:  0 1.5em 0 1em;
 }
 
 .header {
@@ -35,7 +40,6 @@ h2 {
   margin-top: -1.5em;
   line-height: 1.45em;
 }
-
 
 ul {
   list-style: none;
@@ -98,7 +102,7 @@ div .estimation {
 }
 
 div .time {
-  margin-right: 2em;
+  margin-right: 2.2em;
   margin-top: 2em;
 }
 
@@ -116,7 +120,8 @@ div .time p{
 }
 
 .lineitem {
-  max-width: 50%;
+  width: 21em;
+  margin-right: 4em;
 }
 
 .team {
@@ -133,7 +138,7 @@ div .time p{
   margin: 0 1em 1em 0;
   background-color: #0F0F0F;
   border-radius: 0.3em;
-  width: 22.5em;
+  width: 25.6em;
 }
 
 .person:nth-child(even) {
@@ -151,7 +156,7 @@ div .time p{
 
 .person .credits {
   margin: 1.45em 1em 1em 0em;
-  min-width: 12.2em;
+  width: 14.6em
 }
 
 .person .credits p,
@@ -207,7 +212,7 @@ div .time p{
 .utor-bug2 {
   position: absolute;
   transform: rotate(120deg);
-  right: 7em;
+  right: 8em;
   top: 2em;
   width: 2em;
 }
