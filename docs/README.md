@@ -17,9 +17,9 @@ Two parts:
 >In case of questions write me on Telegram: @rotydoge
 
 ## Overview
-
+[Google Docs Proposal template](http://bit.ly/UTOR_proposal_template)
 #### There are four parts of proposal creation flow:
-      1. Send your document
+      1. Send your document using a Google Docs Proposal template
       2. Add additional info, answering bot's questions (e.g. Creation date or Deadlines)
       3. Choose engineer from an engineers list
       4. Add engineers rate for current proposal
