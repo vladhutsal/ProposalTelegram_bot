@@ -29,7 +29,6 @@ Every iteration overs after you press button, that placed right to the `Edit inf
 >**! NOTE:** After you've pressed this button - there is no going back, you need to restart bot using `/start` command and start over again. Pay attention on what are you doing.
 
 
-
 #### What you can do:
 * Edit info after each data-fill iteration, except the DOCX part
 * Add new engineer to the database
@@ -86,7 +85,4 @@ that's mean that there are no saved engineers. You can add new one, by pressing 
 Write the hourly rate for an engineer, whose name bot asking. You don't need to use dollar sign.
 
 #### 9. If everything is alright - press `Creapte PDF`.
-
-
-____________________________________________________________________________________________________________
 
