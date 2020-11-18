@@ -6,7 +6,7 @@ content_template = {
     'CE_list': ['Client Expectations', ''],
     'NPS_list': ['Next potential Steps', ''],
     'TOPS': ['Type of provided Services', ''],
-    'RT_line': ['Report Types', ''],
+    'TOR_line': ['Type of Reports', ''],
     'EHPW_line': ['Expected hours per Week', ''],
     'VA_list': ['Value Added', '']
 }
