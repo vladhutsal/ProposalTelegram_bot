@@ -52,8 +52,9 @@ logging.getLogger('apscheduler.scheduler').propagate = False
     ADD_DOCX,
     ADD_INFO,
     ADD_NEW_ENGINEER,
-    ADD_ENGINEERS_RATE
-) = map(chr, range(5, 9))
+    ADD_ENGINEERS_RATE,
+    ADD_CONTENT_DICT
+) = map(chr, range(5, 10))
 
 # Actions const:
 (
@@ -67,8 +68,9 @@ logging.getLogger('apscheduler.scheduler').propagate = False
     SETTINGS,
     HOW_TO_USE,
     ENGINEERS_SETTINGS,
-    START
-) = map(chr, range(10, 21))
+    START,
+    CHANGE_MODE
+) = map(chr, range(11, 23))
 
 
 def init_Proposal(update, context):
@@ -78,9 +80,10 @@ def init_Proposal(update, context):
     context.user_data['db_handler'] = db_handler
     context.user_data['proposal'] = proposal
     context.user_data['chat_id'] = update.message.chat_id
-    context.user_data['direxists'] = False
+    # context.user_data['direxists'] = False
 
     context.user_data['templates'] = {
+        ADD_CONTENT_DICT:   proposal.content_dict,
         ADD_DOCX:                proposal.content_dict,
         ADD_INFO:                proposal.info_dict,
         ADD_NEW_ENGINEER:        proposal.engineer_dict,
@@ -93,12 +96,17 @@ def init_Proposal(update, context):
 def start(update, context):
     proposal = context.user_data['proposal']
     proposal.settings = False
+
+    if proposal.manual_mode:
+        btn_action = ADD_CONTENT_DICT
+    else:
+        btn_action = ADD_DOCX
+
     # reset content dict when restarting proposal
     buttons = [[
-        add_button('Create new proposal', ADD_DOCX),
+        add_button('Create new proposal', btn_action),
         add_button('More..', SETTINGS)
     ]]
-
     keyboard = InlineKeyboardMarkup(buttons)
     text1 = 'Hi, I`ll help you to complete the proposal.'
     text2 = 'What do you want to do?'
@@ -118,7 +126,7 @@ def start(update, context):
 def settings(update, context):
     proposal = context.user_data['proposal']
     proposal.settings = True
-    query = update.callback_query
+    mode = 'manual' if proposal.manual_mode else 'with docx'
     buttons = [
         [
             add_button('How to use', HOW_TO_USE)
@@ -126,6 +134,9 @@ def settings(update, context):
         [
             # add_button('Edit engineers', ENGINEERS_SETTINGS),
             add_button('Test PDF', TEST)
+        ],
+        [
+            add_button(f'Current mode: {mode}', CHANGE_MODE)
         ],
         [
             add_button('<< Back', START)
@@ -138,19 +149,26 @@ def settings(update, context):
     return SELECT_ACTION
 
 
-def engineers_settings(update, context):
-    buttons = [
-        [
-            add_button('Add engineer', ADD_NEW_ENGINEER),
-            add_button('Delete engineer', DELETE_ENGINEER)
-        ],
-        [
-            add_button('<< Back', START)
-        ]
-    ]
-    text = 'Choose your action'
-    keyboard = InlineKeyboardMarkup(buttons)
-    send_message(update, text, keyboard, edit=True)
+def change_mode(update, context):
+    proposal = context.user_data['proposal']
+    proposal.manual_mode = not proposal.manual_mode
+
+    return settings(update, context)
+
+
+# def engineers_settings(update, context):
+#     buttons = [
+#         [
+#             add_button('Add engineer', ADD_NEW_ENGINEER),
+#             add_button('Delete engineer', DELETE_ENGINEER)
+#         ],
+#         [
+#             add_button('<< Back', START)
+#         ]
+#     ]
+#     text = 'Choose your action'
+#     keyboard = InlineKeyboardMarkup(buttons)
+#     send_message(update, text, keyboard, edit=True)
 
 
 def how_to_use(update, context):
@@ -165,7 +183,7 @@ def how_to_use(update, context):
     return SELECT_ACTION
 
 
-# ================ SHOW BUTTONS AND INIT TEMPLATES
+# ================ SHOW BUTTONS AND INITIALIZE TEMPLATES
 def show_buttons(update, context):
     proposal = context.user_data['proposal']
 
@@ -173,6 +191,10 @@ def show_buttons(update, context):
     if proposal.finish:
         text = 'Create PFD'
         callback_data = CREATE_PDF
+    elif proposal.info:
+        proposal.info = False
+        text = 'Add info'
+        callback_data = ADD_INFO
     else:
         text = 'Choose engineer'
         callback_data = CHOOSE_ENGINEER
@@ -184,7 +206,8 @@ def show_buttons(update, context):
     text = '<b>What`s next?</b>'
     keyboard = InlineKeyboardMarkup.from_row(buttons)
 
-    # add this check to send_message(), because there is a need to use this often
+    # add this check to send_message(),
+    # because there is a need to use this often
     if getattr(update, 'callback_query'):
         edit = True
         update.callback_query.answer()
@@ -204,28 +227,29 @@ def setup(context, template):
     proposal.reset_iter()
 
 
-def init_add_info(update, context):
-    setup(context, ADD_INFO)
+def init_add_docx(update, context):
+    setup(context, ADD_DOCX)
+    return ask_for_docx(update, context)
 
+
+def init_content_dict(update, context):
+    setup(context, ADD_CONTENT_DICT)
     return next_title(update, context)
 
 
-def init_add_docx(update, context):
-    setup(context, ADD_DOCX)
-
-    return ask_for_docx(update, context)
+def init_add_info(update, context):
+    setup(context, ADD_INFO)
+    return next_title(update, context)
 
 
 def init_add_engineers_rate(update, context):
     setup(context, ADD_ENGINEERS_RATE)
-
     return next_title(update, context)
 
 
 def init_add_new_engineer(update, context):
     setup(context, ADD_NEW_ENGINEER)
     update.callback_query.answer()
-
     return next_title(update, context)
 
 
@@ -256,9 +280,11 @@ def show_title(update, context):
     title_name = proposal.get_bold_title(title_id)
 
     if getattr(update, 'callback_query'):
-        send_message(update, title_name, parse='HTML', edit=True)
+        edit = True
     else:
-        send_message(update, title_name, parse='HTML')
+        edit = False
+
+    send_message(update, title_name, parse='HTML', edit=edit)
 
     if title_id == 'PHT':
         return STORE_ENGINEER_TO_DB
@@ -304,8 +330,8 @@ def store_engineer_to_db(update, context):
     if err:
         show_error_message(update, context)
 
-    if proposal.settings:
-        return engineers_settings(update, context)
+    # if proposal.settings:
+    #     return engineers_settings(update, context)
 
     return show_buttons(update, context)
 
@@ -555,9 +581,6 @@ def send_pdf(context, update):
 
     chat_id = context.user_data['chat_id']
 
-    if proposal.interactive:
-        send_message(update, 'Tap /start to start over')
-
     with open(proposal.pdf.name, 'rb') as pdf:
         context.bot.send_document(chat_id=chat_id, document=pdf)
 
@@ -587,6 +610,12 @@ def main():
             SELECT_ACTION: [CallbackQueryHandler(init_add_docx,
                             pattern=ADD_DOCX),
 
+                            CallbackQueryHandler(init_content_dict,
+                            pattern=ADD_CONTENT_DICT),
+
+                            CallbackQueryHandler(init_add_info,
+                            pattern=ADD_INFO),
+
                             CallbackQueryHandler(show_buttons,
                             pattern=SHOW_BUTTONS),
 
@@ -600,12 +629,15 @@ def main():
                             CallbackQueryHandler(how_to_use,
                             pattern=HOW_TO_USE),
 
-                            CallbackQueryHandler(engineers_settings,
-                            pattern=ENGINEERS_SETTINGS),
+                            CallbackQueryHandler(change_mode,
+                            pattern=CHANGE_MODE),
+            
 
+                            # CallbackQueryHandler(engineers_settings,
+                            # pattern=ENGINEERS_SETTINGS),
 
                             CallbackQueryHandler(choose_engineers,
-                            pattern='^' + str(CHOOSE_ENGINEER) + '$'),
+                            pattern=CHOOSE_ENGINEER),
 
                             CallbackQueryHandler(init_add_new_engineer,
                             pattern=ADD_NEW_ENGINEER),
@@ -629,14 +661,13 @@ def main():
 
 
                             CallbackQueryHandler(generate_html,
-                            pattern='^' + str(CREATE_PDF) + '$'),
+                            pattern=CREATE_PDF),
                             
                             CommandHandler('stop', end)],
 
             STORE_DATA: [MessageHandler(Filters.text, store_data)],
 
-            STORE_ENGINEER_TO_DB: [MessageHandler(Filters.photo,
-                                                  store_engineer_to_db)],
+            STORE_ENGINEER_TO_DB: [MessageHandler(Filters.photo, store_engineer_to_db)],
 
             STORE_DOCX: [MessageHandler(Filters.document.docx, store_docx)],
         },
