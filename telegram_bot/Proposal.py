@@ -8,7 +8,7 @@ import os
 
 
 class Proposal:
-    # current_dict = template data, dictionary like
+    # current_dict is the template from templates.py. Dictionary like:
     # {'title_id':['title_name', 'title_content']}
 
     def __init__(self, db_handler):
@@ -29,8 +29,9 @@ class Proposal:
         self.edit_all = True
         self.test = False
         self.finish = False
+        self.info = True
         self.settings = False
-        self.interactive = False
+        self.manual_mode = True
 
     def reset_iter(self):
         if self.dict_id_iterator:
@@ -67,8 +68,6 @@ class Proposal:
         return rand_nm
 
     def get_colored_titles(self):
-        # use here a function to iterate through dictionaries,
-        # like in get_all_engineers func
         colored_titles_dict = self.content_dict
         for title_id in colored_titles_dict.keys():
             title = colored_titles_dict[title_id][0]
