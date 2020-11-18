@@ -10,6 +10,13 @@ credentials.py
 deprecated/
 *.docx
 result.html
+
+/engineers_photo
+!/engineers_photo/111.jpg
+/tempfiles
+!/tempfiles/sdf_11_18_2020_2013.html
+/user_docx
+!/user_docx/365209.docx
 # C extensions
 *.so
 
