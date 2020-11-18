@@ -156,9 +156,7 @@ div .time p{
 
 .person .credits {
   margin: 1.45em 1em 1em 0em;
-  min-width: 11em;
-  width: 14.6em; 
-/* do we need this line? */
+  width: 14.6em
 }
 
 .person .credits p,
