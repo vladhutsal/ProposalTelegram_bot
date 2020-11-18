@@ -1,22 +1,26 @@
 env_tbot/
+deprecated/
 sandbox/
+media/engineers_photo/*
+media/tempfiles/*
+media/users_docx/*
+*.pdf
+!index.html
+credentials.py
+
+
+
+!media/engineers_photo/111.jpg
+!media/tempfiles/sdf_11_18_2020_2013.html
+!media/users_docx/365209.docx
+
+
+
 __pycache__/
 .pytest_cache
 *.py[cod]
 *$py.class
-*.pdf
-!index.html
-credentials.py
-deprecated/
-*.docx
-result.html
 
-/engineers_photo
-!/engineers_photo/111.jpg
-/tempfiles
-!/tempfiles/sdf_11_18_2020_2013.html
-/user_docx
-!/user_docx/365209.docx
 # C extensions
 *.so
 
