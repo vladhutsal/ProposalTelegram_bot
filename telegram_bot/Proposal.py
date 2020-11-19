@@ -76,7 +76,6 @@ class Proposal:
             colored_titles_dict[title_id][0] = [f'{title_white} ', title_blue]
         return colored_titles_dict
 
-    # let it loop
     def collect_user_data_for_html(self):
         if self.test:
             data = create_lorem_dict(self)

@@ -44,8 +44,9 @@ logging.getLogger('apscheduler.scheduler').propagate = False
     STORE_DATA,
     SELECT_ACTION,
     STORE_DOCX,
-    STORE_ENGINEER_TO_DB
-) = map(chr, range(4))
+    STORE_ENGINEER_TO_DB,
+    END
+) = map(chr, range(5))
 
 # Templates const:
 (
@@ -54,7 +55,7 @@ logging.getLogger('apscheduler.scheduler').propagate = False
     ADD_NEW_ENGINEER,
     ADD_ENGINEERS_RATE,
     ADD_CONTENT_DICT
-) = map(chr, range(5, 10))
+) = map(chr, range(6, 11))
 
 # Actions const:
 (
@@ -70,7 +71,7 @@ logging.getLogger('apscheduler.scheduler').propagate = False
     ENGINEERS_SETTINGS,
     START,
     CHANGE_MODE
-) = map(chr, range(11, 23))
+) = map(chr, range(12, 24))
 
 
 def init_Proposal(update, context):
@@ -83,7 +84,7 @@ def init_Proposal(update, context):
     # context.user_data['direxists'] = False
 
     context.user_data['templates'] = {
-        ADD_CONTENT_DICT:   proposal.content_dict,
+        ADD_CONTENT_DICT:        proposal.content_dict,
         ADD_DOCX:                proposal.content_dict,
         ADD_INFO:                proposal.info_dict,
         ADD_NEW_ENGINEER:        proposal.engineer_dict,
@@ -584,13 +585,12 @@ def send_pdf(context, update):
     with open(proposal.pdf.name, 'rb') as pdf:
         context.bot.send_document(chat_id=chat_id, document=pdf)
 
-    return ConversationHandler.END
+    return END
 
 
 # ================ GENERATE TEST PDF
 def get_test_pdf_dict(update, context):
     proposal = context.user_data['proposal']
-    
     proposal.test = True
     update.callback_query.answer()
 
@@ -631,7 +631,7 @@ def main():
 
                             CallbackQueryHandler(change_mode,
                             pattern=CHANGE_MODE),
-            
+      
 
                             # CallbackQueryHandler(engineers_settings,
                             # pattern=ENGINEERS_SETTINGS),
@@ -672,7 +672,8 @@ def main():
             STORE_DOCX: [MessageHandler(Filters.document.docx, store_docx)],
         },
 
-        fallbacks=[CommandHandler('end', end)],
+        fallbacks=[CallbackQueryHandler(end,
+                    pattern=END)],
 
         allow_reentry=True,
 
