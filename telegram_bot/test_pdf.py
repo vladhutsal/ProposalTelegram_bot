@@ -1,12 +1,16 @@
 from lorem_text import lorem
 from random import randint
-from . templates import (
-    content_template,
-    info_template
-)
+from . templates import get_template
 
 
 def create_lorem_dict(proposal):
+
+    proposal.content_dict = get_template('content')
+    proposal.info_template = get_template('info')
+
+    content_template = proposal.content_dict
+    info_template = proposal.info_template
+
     puppet = {
         'N': ['Name', 'Puppet Vasya'],
         'P': ['Position', 'QA engineer'],
@@ -52,7 +56,7 @@ def create_lorem_dict(proposal):
 
     proposal.content_dict = content_template
     proposal.info_dict = info_template
-
+    print('CONTENT DICT BEFORE COLLORING :', proposal.content_dict)
     return {
         'content_dict': proposal.get_colored_titles(),
         'info_dict': info_template,
