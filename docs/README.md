@@ -30,9 +30,9 @@ Every iteration overs after you press button, that placed right to the `Edit inf
 
 
 #### What you can do:
+* Choose between two modes - manual and auto, to create proposal through DOCX parsing or manualy type each title
 * Edit info after each data-fill iteration, except the DOCX part
 * Add new engineer to the database
-* Read this help info
 * Generate test PDF to see if there everything works well
 * Restart your bot to start over.
 
@@ -45,6 +45,18 @@ Every iteration overs after you press button, that placed right to the `Edit inf
 * Edit and delete engineers
 
 ## Flow example
+
+#### Prerequisites:
+
+Choose mode that fits better in `More..` menu.
+
+If the button's text says `Current mode: manual`:
+* You are in the manual mode and need to write all content right in the bot. The bot will show you a title, you need to answer with text (or photo, if bot asks for it).
+* You can start from the **section 2** of this instruction.
+
+If the button's text says `Current mode: with docx`:
+* You are in the docx-parse mode.
+* Start reading from **section 1.**
 
 #### 1. You need to have your document with main content prepared. [Here is a template to work with](http://bit.ly/UTOR_proposal_template)
 
@@ -60,7 +72,8 @@ Every iteration overs after you press button, that placed right to the `Edit inf
 
 #### 2. Press `Create new proposal` button.
 
-#### 3. Download your \*.docx file and send it to the Bot.
+#### 3. Download your \*.docx file or follow bot's questions about main content (for manual mode).
+Main content headers will be the same as for DOCX mode.
 
 #### 4. Now bot will ask you to fill additional info in the next order:
     1. Prepared by              name of sales manager, who'll send proposal to the client
