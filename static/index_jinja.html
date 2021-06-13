@@ -1,139 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-   <meta charset="UTF-8">
-   <link rel="stylesheet" href="main.css">
-   <title>Proposal</title>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="main.css">
+  <title>Proposal</title>
 </head>
+
 <body>
-   
 
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">  
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300&display=swap" rel="stylesheet">
-<br>
-<div class="content"> 
-  
-  <img class="utor-logo" src="../../static/media/logo15.png">
-  <img class="utor-bug1" src="../../static/media/bug.svg">
-  <img class="utor-bug2" src="../../static/media/bug.svg">
-  <img class="plashka1" src="../../static/media/plashka.svg">
-  <img class="plashka2" src="../../static/media/plashka.svg">
-  <img class="plashka3" src="../../static/media/plashka.svg">
 
-    <div class="header">  
-    
-        <div class="accented"></div>
-        
-        <h1>UTOR Proposal</h1>
-        <p>{{ info_dict['CD'][1] }} <strong>Prepared by {{ info_dict['PB'][1] }}</strong></p>
-    
-      </div>
-            {% set title_white = content_dict['MCG'][0][0] %}
-            {% set title_blue = content_dict['MCG'][0][1] %}
-            {% set content = content_dict['MCG'][1] %}
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300&display=swap" rel="stylesheet">
+  <br>
+  <div class="content">
 
-                <h2>Main current <span>Goal</span></h2>
-                <p>{{ content }}</p>
+    <img class="utor-logo" src="../../static/media/logo15.png">
+    <img class="utor-bug1" src="../../static/media/bug.svg">
+    <img class="utor-bug2" src="../../static/media/bug.svg">
+    <img class="plashka1" src="../../static/media/plashka.svg">
+    <img class="plashka2" src="../../static/media/plashka.svg">
+    <img class="plashka3" src="../../static/media/plashka.svg">
 
-            {% set title_white = content_dict['CE_list'][0][0] %}
-            {% set title_blue = content_dict['CE_list'][0][1] %}
-            {% set content = content_dict['CE_list'][1].rstrip('\n').split('\n') %}
+    <div class="header">
 
-            <h2>Client <span>Expectations</span></h2>
-            {% for list_el in content  %}
-                <ul>
-                  <li><p>{{ list_el }}</p></li>
-                </ul>
-            {% endfor %}
+      <div class="accented"></div>
 
-            {% set title_white = content_dict['NPS_list'][0][0] %}
-            {% set title_blue = content_dict['NPS_list'][0][1] %}
-            {% set content = content_dict['NPS_list'][1].rstrip('\n').split('\n') %}
+      <h1>UTOR Proposal</h1>
+      <p>{{ info_dict['CD'][1] }} <strong>Prepared by {{ info_dict['PB'][1] }}</strong></p>
 
-            <h2>Next potential <span>Steps</span></h2>
-            {% for list_el in content  %}
-                <ul>
-                  <li><p>{{ list_el }}</p></li>
-                </ul>
-            {% endfor %}
-
-                <br>
-                <hr/>
-
-            {% set title_white = content_dict['TOPS'][0][0] %}
-            {% set title_blue = content_dict['TOPS'][0][1] %}
-            {% set content = content_dict['TOPS'][1] %}
-
-              <h2>Type of provides<span> Services</span></h2>
-              <p>{{ content }}</p>
-
-            {% set title_white = content_dict['TOR_line'][0][0] %}
-            {% set title_blue = content_dict['TOR_line'][0][1] %}
-            {% set content = content_dict['TOR_line'][1] %}
-
-                <div class="inlineheaders">
-                  <div class="lineitem">
-                      <h2>Report <span>types</span></h2>
-                      <p>{{ content }}</p>
-                  </div>
-            
-            {% set title_white = content_dict['EHPW_line'][0][0] %}
-            {% set title_blue = content_dict['EHPW_line'][0][1] %}
-            {% set content = content_dict['EHPW_line'][1] %}
-
-                  <div class="lineitem">
-                      <h2>Expected hours<span> per Week</span></h2>
-                      <p>{{ content }}</p>
-                  </div>
-                </div>
-
-            {% set title_white = content_dict['VA_list'][0][0] %}
-            {% set title_blue = content_dict['VA_list'][0][1] %}
-            {% set content = content_dict['VA_list'][1].rstrip('\n').split('\n') %}
-
-                <h2>Value <span>added</span></h2>
-            {% for list_el in content  %}
-                <ul>
-                  <li><p>{{ list_el }}</p></li>
-                </ul>
-            {% endfor %}
-              <br>
-              <br>
-     
-        <div class="estimation">
-         <div class="inlineheaders">
-             <h2>Your new <span>Team Members</span></h2>
-             
-             <div class="time">
-               <p>Deadline</p>
-               <h3>{{ info_dict['DL'][1] }}</h3>
-             </div>
-            </div>
-
-          <section class="team">
-
-            {% set engineers = engineers_list %}
-            {% for num in range(engineers|length) %}
-
-                <div class="person">
-                  
-                    <img src="{{ engineers[num]['PHT'][1] }}">
-                    
-                    <div class="credits">
-                      <h3>{{ engineers[num]['N'][1] }}</h3>
-                      <p><strong>{{ engineers[num]['P'][1] }}</strong></p>
-                      <hr>
-                      <p>{{ engineers[num]['EM'][1] }}</p>
-                    </div>
-
-                    <div class="price">
-                      <h3>${{ engineers[num]['RT'][1] }}</h3>
-                      <p>hour</p>
-                    </div>      
-                </div>
-            {% endfor %}     
-          </section>    
-        </div>              
     </div>
+    {% set title_white = content_dict['MCG'][0][0] %}
+    {% set title_blue = content_dict['MCG'][0][1] %}
+    {% set content = content_dict['MCG'][1] %}
+
+    <h2>Main current <span>Goal</span></h2>
+    <p>{{ content }}</p>
+
+    {% set title_white = content_dict['CE_list'][0][0] %}
+    {% set title_blue = content_dict['CE_list'][0][1] %}
+    {% set content = content_dict['CE_list'][1].rstrip('\n').split('\n') %}
+
+    <h2>Client <span>Expectations</span></h2>
+    {% for list_el in content %}
+    <ul>
+      <li>
+        <p>{{ list_el }}</p>
+      </li>
+    </ul>
+    {% endfor %}
+
+    {% set title_white = content_dict['NPS_list'][0][0] %}
+    {% set title_blue = content_dict['NPS_list'][0][1] %}
+    {% set content = content_dict['NPS_list'][1].rstrip('\n').split('\n') %}
+
+    <h2>Next potential <span>Steps</span></h2>
+    {% for list_el in content %}
+    <ul>
+      <li>
+        <p>{{ list_el }}</p>
+      </li>
+    </ul>
+    {% endfor %}
+
+    <br>
+    <hr />
+
+    {% set title_white = content_dict['TOPS'][0][0] %}
+    {% set title_blue = content_dict['TOPS'][0][1] %}
+    {% set content = content_dict['TOPS'][1] %}
+
+    <h2>Type of provides<span> Services</span></h2>
+    <p>{{ content }}</p>
+
+    {% set title_white = content_dict['TOR_line'][0][0] %}
+    {% set title_blue = content_dict['TOR_line'][0][1] %}
+    {% set content = content_dict['TOR_line'][1] %}
+
+    <div class="inlineheaders">
+      <div class="lineitem">
+        <h2>Report <span>types</span></h2>
+        <p>{{ content }}</p>
+      </div>
+
+      {% set title_white = content_dict['EHPW_line'][0][0] %}
+      {% set title_blue = content_dict['EHPW_line'][0][1] %}
+      {% set content = content_dict['EHPW_line'][1] %}
+
+      <div class="lineitem">
+        <h2>Expected hours<span> per Week</span></h2>
+        <p>{{ content }}</p>
+      </div>
+    </div>
+
+    {% set title_white = content_dict['VA_list'][0][0] %}
+    {% set title_blue = content_dict['VA_list'][0][1] %}
+    {% set content = content_dict['VA_list'][1].rstrip('\n').split('\n') %}
+
+    <h2>Value <span>added</span></h2>
+    {% for list_el in content %}
+    <ul>
+      <li>
+        <p>{{ list_el }}</p>
+      </li>
+    </ul>
+    {% endfor %}
+    <br>
+    <br>
+
+    <div class="estimation">
+      <div class="inlineheaders">
+        <h2>Your new <span>Team Members</span></h2>
+
+        <div class="time">
+          <p>Deadline</p>
+          <h3>{{ info_dict['DL'][1] }}</h3>
+        </div>
+      </div>
+
+      <section class="team">
+
+        {% set engineers = engineers_list %}
+        {% for num in range(engineers|length) %}
+
+        <div class="person">
+
+          <img src="{{ engineers[num]['PHT'][1] }}">
+
+          <div class="credits">
+            <h3>{{ engineers[num]['N'][1] }}</h3>
+            <p><strong>{{ engineers[num]['P'][1] }}</strong></p>
+            <hr>
+            <p>{{ engineers[num]['EM'][1] }}</p>
+          </div>
+
+          <div class="price">
+            <h3>${{ engineers[num]['RT'][1] }}</h3>
+            <p>hour</p>
+          </div>
+        </div>
+
+        {% endfor %}
+      </section>
+    </div>
+  </div>
 </body>
+
 </html>

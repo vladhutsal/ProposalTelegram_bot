@@ -18,17 +18,18 @@ h3 {
 }
 
 h2 {
-  margin-top: 1.5em;
+  margin-top: 1.8em;
 }
 
 .content {
   position: relative;
-  max-width: 47rem;
-  margin: 0 auto 8rem auto;
+  max-width: 46rem;
+  margin: 0 auto 8.5rem auto;
 }
 .content-fix {
   margin:  0 0em 0 0em;
-  padding:  0 1.5em 0 1em;
+  /* тут було 1,7 і 1,2 */
+  padding:  0 1.2em 0 1.2em;
 }
 
 .header {
@@ -37,13 +38,12 @@ h2 {
 
 .header h1,
 .header p {
-  margin-top: -1.5em;
+  margin-top: -1.4em;
   line-height: 1.45em;
 }
 
 ul {
   list-style: none;
-  margin-left: 1.2em;
   padding-left: 0;
   margin-top: -0.9em;
 }
@@ -51,14 +51,9 @@ ul {
 li p {
   margin: 0;
   padding: 0;
+  padding-top: 10px;
 }
 
-li p:before {
-  content: url(media/ellipse.svg);
-  color: #FFEC01;
-  padding-right: 0.5em;
-  margin-left: -1.1em;
-}
 
 span {
   color: #20A6C7;
@@ -67,8 +62,8 @@ span {
 p {
   color: #CFCFCF;
   font-weight: lighter;
-  line-height: 1.45em;
-  margin-top: -0.9em;
+  line-height: 1.8em;
+  margin-top: -0.6em;
 }
 
 hr {
@@ -87,14 +82,19 @@ div .estimation {
   background-color: #1B1B1B;
   padding-top: 1em;
   padding-bottom: 2em;
+  /* padding-right: 3.2em; */
+
+  /* тут було 3.6 */
+  padding-left: 3.6em;
+
   margin-left: -3.2em;
   margin-right: -3.2em;
-  padding-left: 3.2em;
 }
 
 .estimation h2 {
   width: 50%;
-  margin-top: 1.45em;
+  /* тут було 1.45em */
+  margin-top: 1em;
 }
 
 .estimation p {
@@ -102,13 +102,16 @@ div .estimation {
 }
 
 div .time {
-  margin-right: 2.2em;
-  margin-top: 2em;
+  /* тут було 2.2 */
+  margin-right: 4em;
+  /* тут було 2 */
+  margin-top: 1em;
 }
 
 div .time h3,
 div .time p{
   margin: 0;
+  /* margin-top: 0.3em; */
   margin-top: 0.3em;
   line-height: 1em;
 }
@@ -128,7 +131,6 @@ div .time p{
   display: flex;
   flex-wrap: wrap;
   width: 100%;
-  margin-left: 0; 
   justify-content: space-around;
 }
 
@@ -228,7 +230,7 @@ div .time p{
 .plashka2 {
   position: absolute;
   right: -8em;
-  top: 59em;
+  top: 50em;
   width: 13.5em;
 }
 

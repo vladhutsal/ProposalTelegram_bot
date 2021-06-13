@@ -3,7 +3,6 @@
 import os
 import logging
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from telegram_bot.credentials import TOKEN
 from telegram_bot.Proposal import Proposal
 from telegram_bot.ProposalDBHandler import ProposalDBHandler
@@ -32,10 +31,6 @@ def daily_clear():
     for filename in os.listdir(f'{os.getcwd()}/media/users_docx'):
         os.remove(os.path.join(os.getcwd(), filename))
 
-
-sched = BackgroundScheduler()
-sched.add_job(daily_clear, 'cron', day_of_week='sun', hour='0')
-sched.start()
 
 logging.getLogger('apscheduler.scheduler').propagate = False
 
